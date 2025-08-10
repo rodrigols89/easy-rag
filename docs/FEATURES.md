@@ -1,3 +1,71 @@
+# Easy RAG
+
+## Conteúdo
+
+ - [](#)
+<!---
+[WHITESPACE RULES]
+- "20" Whitespace character.
+--->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="create-core"></div>
+
+## `Criando o projeto (django) core`
+
+De início vamos criar o `core` do nosso projeto:
+
+```bash
+django-admin startproject core .
+```
+
+Agora é só executar:
+
+```bash
+python manage.py runserver
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
 ### 1. Configuração do Projeto
 
 - Criar ambiente virtual e instalar dependências iniciais (FastAPI ou Django, TailwindCSS, PostgreSQL client, etc.).
@@ -56,43 +124,3 @@
 - Otimizar consultas no banco.
 - Testes de carga e performance.
 - Ajustar responsividade no Tailwind.
-
----
-
-## 📂 Estrutura Esperada do Projeto
-```
-project/
-│── backend/
-│   ├── main.py
-│   ├── auth/
-│   ├── files/
-│   ├── rag/
-│   └── database/
-│── frontend/
-│   ├── pages/
-│   ├── components/
-│   └── styles/
-│── .env
-│── README.md
-```
-
----
-
-## 🔄 Fluxo de Trabalho
-Para cada feature:
-1. **Teoria**: Explicação do conceito e boas práticas.
-2. **Arquitetura**: Como essa feature se encaixa no sistema.
-3. **Implementação**: Código comentado.
-4. **Testes**: Manual e automático.
-5. **Validação**: Confirmar que está funcionando antes de avançar.
-
----
-
-## 🎯 Objetivo Final
-Ao concluir todas as etapas, teremos um sistema funcional, seguro e escalável, com:
-- Registro/Login com verificação e OAuth.
-- Home com chat + histórico.
-- Upload e gerenciamento de arquivos.
-- IA treinada com dados do usuário.
-- Interface responsiva com TailwindCSS.
-- Testes implementados em cada feature.

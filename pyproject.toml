@@ -1,0 +1,50 @@
+[project]
+name = "easy-rag"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "rodrigols89",email = "rodrigols89.inbox@gmail.com"}
+]
+
+readme = "README.md"
+
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "django (>=5.2.5,<6.0.0)"
+]
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.12.8"
+pytest = "^8.4.1"
+taskipy = "^1.14.1"
+pre-commit = "^4.3.0"
+pytest-coverage = "^0.0"
+
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+preview = true
+select = ['I', 'F', 'E', 'W', 'PL', 'PT']
+
+[tool.ruff.format]
+preview = true
+quote-style = "double"
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = '-p no:warnings'
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.taskipy.tasks]
+lint = 'ruff check'
+pre_format = 'ruff check --fix'
+format = 'ruff format'
+pre_test = 'task lint'
+test = 'pytest -s -x --cov=. -vv'
+post_test = 'coverage html'
+precommit = 'pre-commit run --all-files'

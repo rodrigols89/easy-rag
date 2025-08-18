@@ -288,7 +288,7 @@ sudo usermod -aG docker $USER
 
 ## `Criando o container PostgreSQL (db)`
 
-> Aqui nós vamos entender e criar um container contendo um `Banco de Dados PostgreSQL`.
+> Aqui nós vamos entender e criar um container contendo o `Banco de Dados PostgreSQL`.
 
  - **Função:**
    - Armazenar dados persistentes da aplicação (usuários, arquivos, prompts, etc.).
@@ -330,11 +330,14 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
       - backend
+
+volumes:
+  postgres_data:
 
 networks:
   backend:
@@ -356,46 +359,16 @@ networks:
      - `POSTGRES_USER` → cria/define o usuário administrativo inicial.
      - `POSTGRES_PASSWORD` → senha do usuário acima.
  - `volumes:`
-     - `./postgres_data:` → pasta local (no host, raiz do projeto).
+     - `postgres_data:` → Volume docker (Named Volume).
      - `/var/lib/postgresql/data` → pasta interna do container onde o Postgres armazena os dados.
  - `ports: 5432:5432`
    - `Primeiro 5432:` → porta no host (sua máquina).
    - `Segundo 5432:` → porta dentro do container onde o Postgres está rodando.
    - **NOTE:** Isso permite que você use o psql ou qualquer ferramenta de banco de dados (DBeaver, TablePlus, etc.) diretamente do seu PC.
+ - `volumes:`
+   - `postgres_data:` → Volume docker (Named Volume).
  - `networks: backend`
    - Coloca o container na rede backend para comunicação interna segura.
-
-#### BIND MOUNTS PROBLEM
-
- - Uma observação aqui é que a pasta `postgres_data` não vai está no mesmo grupo de usuário do seu PC (host).
- - Ou seja, nem toda ferramento do nosso projeto terá acesso a essa pasta (como o linter ou git).
-
-> **Como resolver isso?**
-
-Bem, no caso do linter (ruff) nós vamos apenas ignorar essa pasta:
-
-[pyproject.toml](../pyproject.toml)
-```toml
-[tool.ruff]
-line-length = 79
-exclude = [
-    "core/settings.py",
-    "postgres_data"
-]
-```
-
-**NOTE:**  
-👉 Essa é a solução mais comum, porque você não precisa mexer na sua infra só para agradar o seu linter.
-
-> **Mas e o git?**
-
-Bem, o git também sofre deste mesmo problema e para resolver é só adicionar essa pasta ao [.gitignore](../.gitignore):
-
-[.gitignore](../.gitignore)
-```bash
-# Ignore PostgreSQL
-postgres_data/
-```
 
 Agora, se você desejar se conectar nesse Banco de Dados via *bash* utilize o seguinte comando (As vezes é necessário esperar o container/banco de dados subir):
 

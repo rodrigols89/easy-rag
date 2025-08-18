@@ -28,7 +28,6 @@ pytest-coverage = "^0.0"
 line-length = 79
 exclude = [
     "core/settings.py",
-    "postgres_data"
 ]
 
 [tool.ruff.lint]

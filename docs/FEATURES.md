@@ -6,6 +6,7 @@
  - [`Exportando as dependências com o Poetry`](#poetry-export)
  - [`Instalando o Docker`](#docker-install)
  - [`Criando o container PostgreSQL (db)`](#db-container)
+ - [`Criando o container Redis (redis_cache)`](#redis-container)
  - [`Comandos Taskipy`](#taskipy-commands)
 <!---
 [WHITESPACE RULES]
@@ -382,10 +383,204 @@ docker exec -it postgres_db bash
 psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 ```
 
+> **E os volumes como eu vejo?**
+
+```bash
+docker volume ls
+```
+
+**OUTPUT:**
+```bash
+DRIVER    VOLUME NAME
+local     easy-rag_postgres_data
+```
+
+Nós também podemos inspecionar esse volume:
+
+```bash
+docker volume inspect easy-rag_postgres_data
+```
+
+**OUTPUT:**
+```bash
+[
+    {
+        "CreatedAt": "2025-08-18T10:11:49-03:00",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "a700fdfee7f177c7f6362471e765e6d38489efcbffced2de9741a321d0b88646",
+            "com.docker.compose.project": "easy-rag",
+            "com.docker.compose.version": "2.39.1",
+            "com.docker.compose.volume": "postgres_data"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/easy-rag_postgres_data/_data",
+        "Name": "easy-rag_postgres_data",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+```
+
+ - `Mountpoint`
+   - O *Mountpoint* é onde os arquivos realmente ficam, mas não é recomendado mexer manualmente lá.
+   - Para interagir com os dados, use o *container* ou ferramentas do próprio serviço (por exemplo, psql no Postgres).
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="redis-container"></div>
+
+## `Criando o container Redis (redis_cache)`
+
+> Aqui nós vamos entender e criar um container contendo um `cache Redis`.
+
+ - **Função:**
+   - Armazenar dados temporários (cache, sessões, filas de tarefas).
+ - **Quando usar:**
+   - Quando for necessário aumentar velocidade de acesso a dados temporários ou usar filas.
+ - **Vantagens:**
+   - Muito rápido (em memória).
+   - Perfeito para cache e tarefas assíncronas.
+ - **Desvantagens:**
+   - Não indicado para dados críticos (pode perder dados em caso de reinício)
+
+Mas antes de criar nosso container contendo o *PostgreSQL* vamos criar as variáveis de ambiente para esse container:
+
+[.env](../.env)
+```bash
+# ==========================
+# CONFIGURAÇÃO DO REDIS
+# ==========================
+REDIS_HOST=redis                  # Nome do serviço (container) do Redis no docker-compose
+REDIS_PORT=6379                   # Porta padrão do Redis
+```
+
+Continuando, o arquivo [docker-compose.yml](../docker-compose.yml) para o nosso container *Redis* ficará assim:
+
+[docker-compose.yml](../docker-compose.yml)
+```yml
+services:
+  redis:
+    image: redis:7
+    container_name: redis_cache
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+
+volumes:
+  redis_data:
+
+networks:
+  backend:
+```
+
+ - `image: redis:7`
+   - Pega a versão 7 oficial do Redis no Docker Hub.
+ - `container_name: redis_cache`
+   - Nome fixo do container (para facilitar comandos como docker logs redis_cache).
+ - `restart: always`
+   - 🔹 O container vai voltar sempre que o Docker daemon subir, independente do motivo da parada.
+   - 🔹 Mesmo se você der *docker stop*, quando o host reiniciar o container volta sozinho.
+   - 👉 Bom para produção quando você quer *99% de disponibilidade*.
+ - `env_file: .env`
+   - Carrega variáveis de ambiente do arquivo `.env`.
+ - `environment`
+   - Define as variáveis de ambiente consumidas pela imagem oficial do Redis:
+     - `REDIS_HOST` → host do Redis (default: localhost, porém estamos utilizando "redis").
+     - `REDIS_PORT` → porta do Redis (default: 6379).
+ - `volumes:`
+   - `redis_data:` → Volume docker (Named Volume).
+ - `networks: backend`
+   - Só está acessível dentro da rede interna backend (não expõe porta para fora).
+
+> **E os volumes como eu vejo?**
+
+```bash
+docker volume ls
+```
+
+**OUTPUT:**
+```bash
+DRIVER    VOLUME NAME
+local     easy-rag_redis_data
+```
+
+Nós também podemos inspecionar esse volume:
+
+```bash
+docker volume inspect easy-rag_redis_data
+```
+
+**OUTPUT:**
+```bash
+[
+    {
+        "CreatedAt": "2025-08-18T10:59:18-03:00",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "4b7c7c51ea40d8462666b2a06701fd53f46d66cb4418c612ddffb0cdca301835",
+            "com.docker.compose.project": "easy-rag",
+            "com.docker.compose.version": "2.39.1",
+            "com.docker.compose.volume": "redis_data"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/easy-rag_redis_data/_data",
+        "Name": "easy-rag_redis_data",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+```
+
+ - `Mountpoint`
+   - O *Mountpoint* é onde os arquivos realmente ficam, mas não é recomendado mexer manualmente lá.
+   - Para interagir com os dados, use o *container* ou ferramentas do próprio serviço (por exemplo, psql no Postgres).
 
 
 

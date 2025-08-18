@@ -15,9 +15,23 @@ services:
       - "5432:5432"
     networks:
       - backend
+  redis:
+    image: redis:7
+    container_name: redis_cache
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   backend:

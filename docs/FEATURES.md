@@ -1,3091 +1,448 @@
-# Easy RAG
+# Sistema RAG - Plano de Desenvolvimento Passo a Passo
 
-## Conteúdo
+## 📋 Visão Geral do Projeto
 
- - [`Criando o projeto (django) core`](#create-core)
- - [`Exportando as dependências com o Poetry`](#poetry-export)
- - [`Instalando o Docker`](#docker-install)
- - [`Criando o container PostgreSQL (db)`](#db-container)
- - [`Criando o container Redis (redis_cache)`](#redis-container)
- - [`Comandos Taskipy`](#taskipy-commands)
-<!---
-[WHITESPACE RULES]
-- "40" Whitespace character.
---->
+Sistema web moderno de RAG (Retrieval-Augmented Generation) com autenticação, gerenciamento de arquivos e interface de chat inteligente, similar ao ChatGPT.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+## 🛠️ Stack Tecnológica
+- **Backend**: Python (Django + Django REST Framework)
+- **Frontend**: Django + Tailwind CSS
+- **Banco de Dados**: PostgreSQL
+- **RAG/AI**: LangChain + OpenAI/Anthropic
+- **Autenticação**: Django Auth + django-oauth-toolkit + JWT
+- **Upload/Storage**: Django FileField + PostgreSQL
+- **Tasks Assíncronas**: Celery + Redis
+- **Containerização**: Docker + Docker Compose
 
 ---
 
-<div id="create-core"></div>
+## 🎯 Lista de Features - Implementação Passo a Passo
 
-## `Criando o projeto (django) core`
+### **FASE 1: Infraestrutura Base**
 
-De início vamos criar o `core` do nosso projeto:
+#### **Feature 1.1: Configuração do Ambiente**
+- **Descrição**: Setup inicial do projeto com Docker, PostgreSQL, Django
+- **Implementação**:
+  - [V] Docker Compose com PostgreSQL, Redis, Django
+  - Estrutura de projeto Django + DRF
+  - Setup inicial do banco de dados
+  - Configuração do Celery para tasks assíncronas
+- **Testes**:
+  - ✅ Conectividade com PostgreSQL
+  - ✅ Servidor Django funcionando
+  - ✅ DRF API endpoints respondendo
+  - ✅ Celery worker ativo
+  - ✅ Docker containers iniciando corretamente
 
-```bash
-django-admin startproject core .
-```
-
-Agora é só executar:
-
-```bash
-python manage.py runserver
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#### **Feature 1.2: Modelos Django**
+- **Descrição**: Criação dos models Django e relacionamentos do sistema
+- **Implementação**:
+  - Django Models (User, Conversation, Message, File, Folder)
+  - Custom User model com AbstractUser
+  - Relacionamentos entre entidades
+  - Migrações Django
+  - Django Admin configuration
+- **Testes**:
+  - ✅ Criação de todas as tabelas
+  - ✅ Relacionamentos funcionando
+  - ✅ Admin interface acessível
+  - ✅ Constraints e índices aplicados
 
 ---
 
-<div id="poetry-export"></div>
+### **FASE 2: Sistema de Autenticação**
 
-## `Exportando as dependências com o Poetry`
+#### **Feature 2.1: Registro de Usuário com Email**
+- **Descrição**: Sistema completo de registro com verificação por email
+- **Implementação**:
+  - Django REST Framework ViewSet para registro
+  - Custom User model com email verification
+  - Geração e envio de código de verificação
+  - Validação de email único
+  - Hash de senhas com Django Auth
+  - Templates de email com django-templated-mail
+- **Testes**:
+  - ✅ Registro com dados válidos
+  - ✅ Validação de email duplicado
+  - ✅ Envio de código por email
+  - ✅ Verificação de código correto/incorreto
+  - ✅ Hash de senha funcionando
 
-Antes de criar nossos containers, precisamos gerar os `requirements.txt` e `requirements-dev.txt`:
+#### **Feature 2.2: Verificação de Email**
+- **Descrição**: Confirmação de conta via código enviado por email
+- **Implementação**:
+  - DRF ViewSet `/api/auth/verify-email/`
+  - Model para códigos temporários (6 dígitos)
+  - Expiração de códigos (15 minutos)
+  - Ativação de conta após verificação
+  - Signals Django para automação
+- **Testes**:
+  - ✅ Verificação com código válido
+  - ✅ Rejeição de código inválido
+  - ✅ Expiração de código
+  - ✅ Ativação de conta
 
-**Primeiro devemos instalar o plugin "export" do Poetry:**
-```bash
-poetry self add poetry-plugin-export
-```
+#### **Feature 2.3: OAuth (Google, GitHub)**
+- **Descrição**: Login social com provedores externos
+- **Implementação**:
+  - django-oauth-toolkit para OAuth2
+  - django-allauth para social authentication
+  - Endpoints `/api/auth/oauth/{provider}/`
+  - Criação automática de usuário OAuth
+  - Vinculação de contas existentes
+- **Testes**:
+  - ✅ Login com Google
+  - ✅ Login com GitHub
+  - ✅ Criação automática de usuário
+  - ✅ Vinculação de contas
 
-Agora vamos gerar `requirements.txt` de produção.
-
-**Produção:**
-```bash
-poetry export --without-hashes --format=requirements.txt --output=requirements.txt
-```
-
-Agora vamos gerar `requirements-dev.txt` (esse é mais utilizado durante o desenvolvimento para quem não usa o Poetry):
-
-**Desenvolvimento:**
-```bash
-poetry export --without-hashes --with dev --format=requirements.txt --output=requirements-dev.txt
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#### **Feature 2.4: Sistema de Login**
+- **Descrição**: Autenticação JWT com refresh tokens
+- **Implementação**:
+  - DRF Token Authentication + JWT
+  - djangorestframework-simplejwt
+  - ViewSet `/api/auth/login/`
+  - Refresh token mechanism
+  - Permission classes customizadas
+  - Rate limiting com django-ratelimit
+- **Testes**:
+  - ✅ Login com credenciais válidas
+  - ✅ Rejeição de credenciais inválidas
+  - ✅ Geração de tokens JWT
+  - ✅ Refresh token funcionando
+  - ✅ Rate limiting ativo
 
 ---
 
-<div id="docker-install"></div>
+### **FASE 3: Interface Frontend**
 
-## `Instalando o Docker`
+#### **Feature 3.1: Tela de Registro (Frontend)**
+- **Descrição**: Interface moderna para registro de usuário
+- **Implementação**:
+  - Componente React com Tailwind
+  - Validação de formulário (react-hook-form + zod)
+  - Estados de loading e erro
+  - Integração com backend
+  - Design responsivo
+- **Testes**:
+  - ✅ Validação de campos em tempo real
+  - ✅ Envio de formulário
+  - ✅ Tratamento de erros
+  - ✅ Estados de loading
+  - ✅ Responsividade
 
-Aqui nós vamos instalar o Docker na nossa maquina virtual (WSL2) que será utilizado na construção e manutenção dos nossos containers.
+#### **Feature 3.2: Tela de Verificação de Email**
+- **Descrição**: Interface para inserir código de verificação
+- **Implementação**:
+  - Input de código (6 dígitos)
+  - Timer de expiração
+  - Reenvio de código
+  - Feedback visual
+- **Testes**:
+  - ✅ Input de código funcionando
+  - ✅ Timer contando
+  - ✅ Reenvio funcionando
+  - ✅ Verificação bem-sucedida
 
-**Atualizar pacotes:**
-```bash
-sudo apt update && sudo apt upgrade -y
-```
-
-**Remover versões antigas (se existirem):**
-```bash
-sudo apt remove docker docker-engine docker.io containerd runc
-```
-
-**Instalar dependências:**
-```bash
-sudo apt install ca-certificates curl gnupg lsb-release -y
-```
-
-**Cria a pasta /etc/apt/keyrings com permissões seguras para guardar chaves GPG de repositórios:**
-```bash
-sudo mkdir -m 0755 -p /etc/apt/keyrings
-```
-
-**baixa a chave GPG oficial do Docker e a converte para o formato binário aceito pelo APT, salvando no diretório de chaves do sistema:**
-```bash
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-```
-
-**Adicionar repositório do Docker:**
-```bash
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-```
-
-**Atualizar pacotes (novamente):**
-```bash
-sudo apt update && sudo apt upgrade -y
-```
-
-**Instalar Docker e Compose:**
-```bash
-sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-```
-
-**O Docker, por padrão, só permite que o root (ou membros do grupo `docker`) executem comandos. Criar o grupo `docker` permite conceder permissão a usuários comuns sem precisar usar sudo o tempo todo:**
-```bash
-sudo groupadd docker
-```
-
-> **NOTE:**  
-> - Em muitas distros, esse grupo já existe — nesse caso, o comando só vai dar erro dizendo que o grupo já existe, o que é normal.
-> - groupadd: group 'docker' already exists
-
-**Isso coloca o usuário atual no grupo docker, permitindo executar comandos como `docker ps`:**
-```bash
-sudo usermod -aG docker $USER
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#### **Feature 3.3: Tela de Login (Frontend)**
+- **Descrição**: Interface de login com opções sociais
+- **Implementação**:
+  - Formulário de login tradicional
+  - Botões OAuth (Google, GitHub)
+  - Recuperação de senha
+  - Persistência de sessão
+- **Testes**:
+  - ✅ Login tradicional
+  - ✅ Login social
+  - ✅ Persistência de sessão
+  - ✅ Redirecionamentos
 
 ---
 
-<div id="db-container"></div>
+### **FASE 4: Interface Principal**
 
-## `Criando o container PostgreSQL (db)`
+#### **Feature 4.1: Layout Principal**
+- **Descrição**: Layout base com sidebar e área principal
+- **Implementação**:
+  - Layout responsivo com sidebar
+  - Header com informações do usuário
+  - Navegação entre seções
+  - Menu mobile
+- **Testes**:
+  - ✅ Layout responsivo
+  - ✅ Sidebar funcionando
+  - ✅ Menu mobile
+  - ✅ Navegação
 
-> Aqui nós vamos entender e criar um container contendo o `Banco de Dados PostgreSQL`.
+#### **Feature 4.2: Tela Home/Chat**
+- **Descrição**: Interface principal de chat similar ao ChatGPT
+- **Implementação**:
+  - Área de input para mensagens
+  - Histórico de conversas
+  - Streaming de respostas
+  - Markdown rendering
+  - Auto-scroll
+- **Testes**:
+  - ✅ Envio de mensagens
+  - ✅ Exibição de respostas
+  - ✅ Markdown funcionando
+  - ✅ Auto-scroll ativo
 
- - **Função:**
-   - Armazenar dados persistentes da aplicação (usuários, arquivos, prompts, etc.).
- - **Quando usar:**
-   - Sempre que precisar de um banco de dados relacional robusto.
- - **Vantagens:**
-   - ACID (consistência e confiabilidade).
-   - Suporte avançado a consultas complexas.
- - **Desvantagens:**
-   - Mais pesado que bancos NoSQL para dados muito simples.
-
-Mas antes de criar nosso container contendo o *PostgreSQL* vamos criar as variáveis de ambiente para esse container:
-
-[.env](../.env)
-```bash
-# ==========================
-# CONFIGURAÇÃO DO POSTGRES
-# ==========================
-POSTGRES_DB=easy_rag_db           # Nome do banco de dados a ser criado
-POSTGRES_USER=easyrag             # Usuário do banco
-POSTGRES_PASSWORD=easyragpass     # Senha do banco
-POSTGRES_HOST=db                  # Nome do serviço (container) do banco no docker-compose
-POSTGRES_PORT=5432                # Porta padrão do PostgreSQL
-```
-
-Continuando, o arquivo [docker-compose.yml](../docker-compose.yml) para o nosso container *PostgreSQL* ficará assim:
-
-[docker-compose.yml](../docker-compose.yml)
-```yml
-services:
-  db:
-    image: postgres:15
-    container_name: postgres_db
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - backend
-
-volumes:
-  postgres_data:
-
-networks:
-  backend:
-```
-
- - `image: postgres:15`
-   - Pega a versão 15 oficial do PostgreSQL no Docker Hub.
- - `container_name: postgres_db`
-   - Nome fixo do container (para facilitar comandos como docker logs postgres_db).
- - `restart: always`
-   - 🔹 O container vai voltar sempre que o Docker daemon subir, independente do motivo da parada.
-   - 🔹 Mesmo se você der *docker stop*, quando o host reiniciar o container volta sozinho.
-   - 👉 Bom para produção quando você quer *99% de disponibilidade*.
- - `env_file: .env`
-   - Carrega variáveis de ambiente do arquivo *.env*.
- - `environment`
-   - Define as variáveis de ambiente consumidas pela imagem oficial do Postgres:
-     - `POSTGRES_DB` → cria um banco inicial com esse nome (somente no primeiro start, quando o diretório de dados está vazio).
-     - `POSTGRES_USER` → cria/define o usuário administrativo inicial.
-     - `POSTGRES_PASSWORD` → senha do usuário acima.
- - `volumes:`
-     - `postgres_data:` → Volume docker (Named Volume).
-     - `/var/lib/postgresql/data` → pasta interna do container onde o Postgres armazena os dados.
- - `ports: 5432:5432`
-   - `Primeiro 5432:` → porta no host (sua máquina).
-   - `Segundo 5432:` → porta dentro do container onde o Postgres está rodando.
-   - **NOTE:** Isso permite que você use o psql ou qualquer ferramenta de banco de dados (DBeaver, TablePlus, etc.) diretamente do seu PC.
- - `volumes:`
-   - `postgres_data:` → Volume docker (Named Volume).
- - `networks: backend`
-   - Coloca o container na rede backend para comunicação interna segura.
-
-Agora, se você desejar se conectar nesse Banco de Dados via *bash* utilize o seguinte comando (As vezes é necessário esperar o container/banco de dados subir):
-
-**Entrar no container "postgres_db" via bash:**
-```bash
-docker exec -it postgres_db bash
-```
-
-**Entra no banco de sados a partir das variáveis de ambiente:**
-```bash
-psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
-```
-
-> **E os volumes como eu vejo?**
-
-```bash
-docker volume ls
-```
-
-**OUTPUT:**
-```bash
-DRIVER    VOLUME NAME
-local     easy-rag_postgres_data
-```
-
-Nós também podemos inspecionar esse volume:
-
-```bash
-docker volume inspect easy-rag_postgres_data
-```
-
-**OUTPUT:**
-```bash
-[
-    {
-        "CreatedAt": "2025-08-18T10:11:49-03:00",
-        "Driver": "local",
-        "Labels": {
-            "com.docker.compose.config-hash": "a700fdfee7f177c7f6362471e765e6d38489efcbffced2de9741a321d0b88646",
-            "com.docker.compose.project": "easy-rag",
-            "com.docker.compose.version": "2.39.1",
-            "com.docker.compose.volume": "postgres_data"
-        },
-        "Mountpoint": "/var/lib/docker/volumes/easy-rag_postgres_data/_data",
-        "Name": "easy-rag_postgres_data",
-        "Options": null,
-        "Scope": "local"
-    }
-]
-```
-
- - `Mountpoint`
-   - O *Mountpoint* é onde os arquivos realmente ficam, mas não é recomendado mexer manualmente lá.
-   - Para interagir com os dados, use o *container* ou ferramentas do próprio serviço (por exemplo, psql no Postgres).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#### **Feature 4.3: Sidebar com Lista de Conversas**
+- **Descrição**: Lista histórica de conversas no sidebar
+- **Implementação**:
+  - Lista paginada de conversas
+  - Busca por conversas
+  - Criação de nova conversa
+  - Exclusão de conversas
+  - Títulos automáticos
+- **Testes**:
+  - ✅ Listagem de conversas
+  - ✅ Busca funcionando
+  - ✅ Nova conversa
+  - ✅ Exclusão
+  - ✅ Títulos automáticos
 
 ---
 
-<div id="redis-container"></div>
-
-## `Criando o container Redis (redis_cache)`
-
-> Aqui nós vamos entender e criar um container contendo um `cache Redis`.
-
- - **Função:**
-   - Armazenar dados temporários (cache, sessões, filas de tarefas).
- - **Quando usar:**
-   - Quando for necessário aumentar velocidade de acesso a dados temporários ou usar filas.
- - **Vantagens:**
-   - Muito rápido (em memória).
-   - Perfeito para cache e tarefas assíncronas.
- - **Desvantagens:**
-   - Não indicado para dados críticos (pode perder dados em caso de reinício)
-
-Mas antes de criar nosso container contendo o *PostgreSQL* vamos criar as variáveis de ambiente para esse container:
-
-[.env](../.env)
-```bash
-# ==========================
-# CONFIGURAÇÃO DO REDIS
-# ==========================
-REDIS_HOST=redis                  # Nome do serviço (container) do Redis no docker-compose
-REDIS_PORT=6379                   # Porta padrão do Redis
-```
-
-Continuando, o arquivo [docker-compose.yml](../docker-compose.yml) para o nosso container *Redis* ficará assim:
-
-[docker-compose.yml](../docker-compose.yml)
-```yml
-services:
-  redis:
-    image: redis:7
-    container_name: redis_cache
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-    volumes:
-      - redis_data:/data
-    networks:
-      - backend
-
-volumes:
-  redis_data:
-
-networks:
-  backend:
-```
-
- - `image: redis:7`
-   - Pega a versão 7 oficial do Redis no Docker Hub.
- - `container_name: redis_cache`
-   - Nome fixo do container (para facilitar comandos como docker logs redis_cache).
- - `restart: always`
-   - 🔹 O container vai voltar sempre que o Docker daemon subir, independente do motivo da parada.
-   - 🔹 Mesmo se você der *docker stop*, quando o host reiniciar o container volta sozinho.
-   - 👉 Bom para produção quando você quer *99% de disponibilidade*.
- - `env_file: .env`
-   - Carrega variáveis de ambiente do arquivo `.env`.
- - `environment`
-   - Define as variáveis de ambiente consumidas pela imagem oficial do Redis:
-     - `REDIS_HOST` → host do Redis (default: localhost, porém estamos utilizando "redis").
-     - `REDIS_PORT` → porta do Redis (default: 6379).
- - `volumes:`
-   - `redis_data:` → Volume docker (Named Volume).
- - `networks: backend`
-   - Só está acessível dentro da rede interna backend (não expõe porta para fora).
-
-> **E os volumes como eu vejo?**
-
-```bash
-docker volume ls
-```
-
-**OUTPUT:**
-```bash
-DRIVER    VOLUME NAME
-local     easy-rag_redis_data
-```
-
-Nós também podemos inspecionar esse volume:
-
-```bash
-docker volume inspect easy-rag_redis_data
-```
-
-**OUTPUT:**
-```bash
-[
-    {
-        "CreatedAt": "2025-08-18T10:59:18-03:00",
-        "Driver": "local",
-        "Labels": {
-            "com.docker.compose.config-hash": "4b7c7c51ea40d8462666b2a06701fd53f46d66cb4418c612ddffb0cdca301835",
-            "com.docker.compose.project": "easy-rag",
-            "com.docker.compose.version": "2.39.1",
-            "com.docker.compose.volume": "redis_data"
-        },
-        "Mountpoint": "/var/lib/docker/volumes/easy-rag_redis_data/_data",
-        "Name": "easy-rag_redis_data",
-        "Options": null,
-        "Scope": "local"
-    }
-]
-```
-
- - `Mountpoint`
-   - O *Mountpoint* é onde os arquivos realmente ficam, mas não é recomendado mexer manualmente lá.
-   - Para interagir com os dados, use o *container* ou ferramentas do próprio serviço (por exemplo, psql no Postgres).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### **FASE 5: Sistema de Arquivos**
+
+#### **Feature 5.1: Modal de Gerenciamento de Arquivos**
+- **Descrição**: Interface para gerenciar pastas e arquivos
+- **Implementação**:
+  - Modal responsivo
+  - Árvore de pastas
+  - Drag & drop para upload
+  - Preview de arquivos
+  - Ações (renomear, excluir, mover)
+- **Testes**:
+  - ✅ Abertura do modal
+  - ✅ Árvore de pastas
+  - ✅ Preview funcionando
+  - ✅ Ações de arquivo
+
+#### **Feature 5.2: Sistema de Pastas (Backend)**
+- **Descrição**: API Django para gerenciamento de estrutura de pastas
+- **Implementação**:
+  - Django Model com MPTT (Modified Preorder Tree Traversal)
+  - DRF ViewSet CRUD (`/api/folders/`)
+  - Estrutura hierárquica com django-mptt
+  - Validação de nomes
+  - Soft delete com django-model-utils
+- **Testes**:
+  - ✅ Criar pasta
+  - ✅ Listar pastas (árvore)
+  - ✅ Renomear pasta
+  - ✅ Excluir pasta
+  - ✅ Estrutura hierárquica
+
+#### **Feature 5.3: Upload de Arquivos (Backend)**
+- **Descrição**: Sistema robusto de upload e armazenamento
+- **Implementação**:
+  - DRF ViewSet `/api/files/upload/`
+  - Django FileField com validadores customizados
+  - Validação de tipos de arquivo
+  - Armazenamento em PostgreSQL (FileField)
+  - Metadata extraction com python-magic
+  - Antivírus scanning com pyclamd
+  - Compressão automática
+  - Celery task para processamento assíncrono
+- **Testes**:
+  - ✅ Upload de diferentes tipos
+  - ✅ Validação de tipos
+  - ✅ Armazenamento correto
+  - ✅ Metadata extraída
+  - ✅ Scanning de segurança
+
+#### **Feature 5.4: Processamento de Arquivos para RAG**
+- **Descrição**: Pipeline de processamento para alimentar o RAG
+- **Implementação**:
+  - Extração de texto (PDF, DOCX, TXT, etc.)
+  - Chunking inteligente
+  - Geração de embeddings
+  - Armazenamento em vector database
+  - Queue de processamento (Celery)
+- **Testes**:
+  - ✅ Extração de texto
+  - ✅ Chunking funcionando
+  - ✅ Embeddings gerados
+  - ✅ Armazenamento vetorial
+  - ✅ Queue processando
 
 ---
 
-<div id="taskipy-commands"></div>
+### **FASE 6: Sistema RAG**
 
-## `Comandos Taskipy`
+#### **Feature 6.1: Configuração LangChain**
+- **Descrição**: Setup base do sistema RAG com LangChain
+- **Implementação**:
+  - Configuração de vector store
+  - Setup de embeddings model
+  - Configuração de LLM
+  - Chain de retrieval
+- **Testes**:
+  - ✅ Vector store funcionando
+  - ✅ Embeddings gerados
+  - ✅ LLM respondendo
+  - ✅ Retrieval ativo
 
-> **Aqui vamos explicar quais os comando nós estamos utilizando na nossa aplicação.**
+#### **Feature 6.2: Sistema de Busca Semântica**
+- **Descrição**: Busca inteligente nos documentos do usuário
+- **Implementação**:
+  - Similarity search
+  - Filtros por usuário/pasta
+  - Ranking de resultados
+  - Caching de buscas
+- **Testes**:
+  - ✅ Busca semântica
+  - ✅ Filtros funcionando
+  - ✅ Ranking correto
+  - ✅ Cache ativo
 
-### Lint, Format, Pre-Commit
-
-```toml
-lint = 'ruff check'
-```
-
- - Executa o Ruff (um linter rápido para Python) para verificar problemas no código, como:
-   - Erros de sintaxe;
-   - Problemas de estilo (PEP8);
-   - Imports não utilizados;
-   - Variáveis não usadas.
-   - **📌 Importante:** Este comando só verifica, não corrige nada.
-
-```toml
-pre_format = 'ruff check --fix'
-```
-
- - Faz a mesma verificação do comando acima, mas corrige automaticamente os problemas que puder (como remover imports não usados, ajustar espaçamentos, etc.).
-
-```toml
-format = 'ruff format'
-```
-
- - Formata o código de acordo com as regras de estilo configuradas no Ruff, similar ao Black.
- - Foca mais na formatação visual do código do que nas regras de qualidade.
-
-```toml
-precommit = 'pre-commit run --all-files'
-```
-
- - Executa todos os hooks do pre-commit em todos os arquivos do projeto.
- - Pode incluir: lint, formatação, verificação de imports, checagem de segurança, etc.
-
-### Testes
-
-```toml
-pre_test = 'task lint'
-```
-
- - Executa o comando `lint` antes de rodar os testes.
- - Isso garante que o código está limpo antes de testar.
-
-```toml
-test = 'pytest -s -x --cov=. -vv'
-```
-
- - Executa os testes com pytest com algumas opções:
-   - `-s` → Mostra os prints do código durante os testes;
-   - `-x` → Para na primeira falha.
-   - `--cov=.` → Mede a cobertura de testes no diretório atual.
-   - `-vv` → Modo muito verboso, mostrando mais detalhes de cada teste.
-
-```toml
-post_test = 'coverage html'
-```
-
- - Depois que os testes rodam, gera um relatório HTML da cobertura de código.
- - Normalmente, cria uma pasta `htmlcov/` com o relatório.
-
-### Docker (Containers)
-
-```toml
-prodcompose = 'docker compose -f docker-compose.yml up --build -d'
-```
-
- - Sobe os containers do projeto em modo produção, usando `docker-compose.yml`.
- - `-d` significa detached mode (em background).
-
-```toml
-devcompose = 'docker compose up -d'
-```
-
- - Mesma ideia do anterior, mas usando o comando mais recente (docker compose sem hífen).
- - `-d` Também sobe os containers em modo detached.
- - Provavelmente pensado (usado) para ambiente de desenvolvimento.
-
-```toml
-rcontainers = 'docker compose up -d --force-recreate'
-```
-
- - Recria todos os containers do projeto, mesmo que nada tenha mudado no código ou no `docker-compose.yml`.
- - Útil quando o container está corrompido ou com cache problemático.
-
-```toml
-cleandocker = """
-docker stop $(docker ps -aq) 2>/dev/null || true &&
-docker rm $(docker ps -aq) 2>/dev/null || true &&
-docker rmi -f $(docker images -aq) 2>/dev/null || true &&
-docker volume rm $(docker volume ls -q) 2>/dev/null || true &&
-docker system prune -a --volumes -f
-"""
-```
-
- - Limpa todos os *containers*, *imagens*, *volumes* e *cache* do Docker.
+#### **Feature 6.3: Geração de Respostas RAG**
+- **Descrição**: Sistema completo de geração de respostas contextuais
+- **Implementação**:
+  - Prompt engineering
+  - Context injection
+  - Response streaming
+  - Citações de fontes
+  - Fallback para conhecimento geral
+- **Testes**:
+  - ✅ Respostas contextuais
+  - ✅ Streaming funcionando
+  - ✅ Citações corretas
+  - ✅ Fallback ativo
 
 ---
 
-**Rodrigo** **L**eite da **S**ilva - **rodrigols89**
+### **FASE 7: Features Avançadas**
+
+#### **Feature 7.1: Sistema de Conversas Persistentes**
+- **Descrição**: Histórico completo de conversas com contexto
+- **Implementação**:
+  - Armazenamento de conversas
+  - Context window management
+  - Resumo de conversas longas
+  - Busca no histórico
+- **Testes**:
+  - ✅ Conversas salvas
+  - ✅ Context window
+  - ✅ Resumos gerados
+  - ✅ Busca no histórico
+
+#### **Feature 7.2: Compartilhamento de Conversas**
+- **Descrição**: Sistema para compartilhar conversas publicamente
+- **Implementação**:
+  - URLs públicas de conversas
+  - Controle de privacidade
+  - Expiração de links
+  - Analytics básico
+- **Testes**:
+  - ✅ Links públicos
+  - ✅ Controle de privacidade
+  - ✅ Expiração funcionando
+  - ✅ Analytics coletados
+
+#### **Feature 7.3: Sistema de Configurações**
+- **Descrição**: Painel de configurações do usuário
+- **Implementação**:
+  - Preferências de modelo
+  - Configurações de privacidade
+  - Gerenciamento de dados
+  - Temas da interface
+- **Testes**:
+  - ✅ Salvamento de preferências
+  - ✅ Controles de privacidade
+  - ✅ Gerenciamento de dados
+  - ✅ Temas funcionando
+
+---
+
+### **FASE 8: Otimização e Deploy**
+
+#### **Feature 8.1: Performance e Caching**
+- **Descrição**: Otimizações para produção
+- **Implementação**:
+  - Redis para caching
+  - Otimização de queries
+  - CDN para assets
+  - Lazy loading
+  - Connection pooling
+- **Testes**:
+  - ✅ Cache funcionando
+  - ✅ Queries otimizadas
+  - ✅ Assets servidos via CDN
+  - ✅ Loading otimizado
+
+#### **Feature 8.2: Monitoramento e Logs**
+- **Descrição**: Sistema de observabilidade
+- **Implementação**:
+  - Structured logging
+  - Error tracking (Sentry)
+  - Metrics (Prometheus)
+  - Health checks
+- **Testes**:
+  - ✅ Logs estruturados
+  - ✅ Errors sendo tracked
+  - ✅ Metrics coletadas
+  - ✅ Health checks ativos
+
+#### **Feature 8.3: Deployment Production**
+- **Descrição**: Deploy completo em produção
+- **Implementação**:
+  - Docker multi-stage builds
+  - CI/CD pipeline
+  - Environment management
+  - SSL/HTTPS
+  - Backup automático
+- **Testes**:
+  - ✅ Deploy automatizado
+  - ✅ Pipeline funcionando
+  - ✅ HTTPS ativo
+  - ✅ Backups realizados
+
+---
+
+## 🧪 Testes Gerais do Sistema
+
+### **Testes de Integração Final**
+- ✅ Fluxo completo: Registro → Login → Upload → Chat
+- ✅ Performance sob carga
+- ✅ Segurança (OWASP Top 10)
+- ✅ Acessibilidade (WCAG)
+- ✅ Cross-browser compatibility
+- ✅ Mobile responsiveness
+
+### **Testes de Qualidade**
+- ✅ Code coverage > 80%
+- ✅ Linting e formatting
+- ✅ Type checking (TypeScript/Python)
+- ✅ Security scanning
+- ✅ Dependency vulnerabilities
+
+---
+
+## 🚀 Prompt para Início de Cada Feature
+
+```
+Agora vamos implementar a [FEATURE_NAME].
+
+**Contexto**: [Breve descrição da feature]
+
+**Objetivo**: [O que queremos alcançar]
+
+**Arquitetura**: [Como ela se integra ao sistema]
+
+Por favor:
+1. Explique a teoria e conceitos por trás desta feature
+2. Detalhe a implementação técnica passo a passo
+3. Mostre o código necessário (backend/frontend)
+4. Liste os testes que devemos executar
+5. Mencione possíveis problemas e soluções
+
+Estou pronto para começar!
+```
+
+---
+
+Este plano garante um desenvolvimento estruturado, testável e escalável do seu sistema RAG. Cada feature é independente e pode ser desenvolvida/testada isoladamente antes de integração com o resto do sistema.

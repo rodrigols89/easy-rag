@@ -5,10 +5,6 @@ services:
     restart: always
     env_file:
       - .env
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -21,11 +17,34 @@ services:
     restart: always
     env_file:
       - .env
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
     volumes:
       - redis_data:/data
+    networks:
+      - backend
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django_web
+    restart: always
+    user: "${UID}:${GID}"
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py collectstatic --noinput &&
+      uvicorn core.asgi:application --reload --host ${UVICORN_HOST} --port ${UVICORN_PORT}
+      "
+    env_file:
+      - .env
+    volumes:
+      - .:/code
+      - ./static:/code/staticfiles
+      - ./media:/code/media
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "${UVICORN_PORT}:${UVICORN_PORT}"
     networks:
       - backend
 

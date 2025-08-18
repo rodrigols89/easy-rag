@@ -1,11 +1,3 @@
-<!---
-Procure por....   [PAROU AQUI] ->
---->
-
-
-
-
-
 # Sistema RAG - Plano de Desenvolvimento Passo a Passo
 
 ## 📋 Visão Geral do Projeto
@@ -14,7 +6,7 @@ Sistema web moderno de RAG (Retrieval-Augmented Generation) com autenticação, 
 
 ## 🛠️ Stack Tecnológica
 - **Backend**: Python (Django + Django REST Framework)
-- **Frontend**: React + Tailwind CSS
+- **Frontend**: Django + Tailwind CSS
 - **Banco de Dados**: PostgreSQL
 - **RAG/AI**: LangChain + OpenAI/Anthropic
 - **Autenticação**: Django Auth + django-oauth-toolkit + JWT
@@ -31,9 +23,8 @@ Sistema web moderno de RAG (Retrieval-Augmented Generation) com autenticação, 
 #### **Feature 1.1: Configuração do Ambiente**
 - **Descrição**: Setup inicial do projeto com Docker, PostgreSQL, Django
 - **Implementação**:
-[PAROU AQUI] ->  - Docker Compose com PostgreSQL, Redis, Django
+  - [V] Docker Compose com PostgreSQL, Redis, Django
   - Estrutura de projeto Django + DRF
-  - Configuração de variáveis de ambiente (django-environ)
   - Setup inicial do banco de dados
   - Configuração do Celery para tasks assíncronas
 - **Testes**:

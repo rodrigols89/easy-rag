@@ -1,3 +1,6 @@
+# Ignore PostgreSQL
+postgres_data/
+
 # Ignore media/documents
 media/documents/*
 

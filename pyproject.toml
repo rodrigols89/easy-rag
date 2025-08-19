@@ -64,4 +64,8 @@ docker rmi -f $(docker images -aq) 2>/dev/null || true &&
 docker volume rm $(docker volume ls -q) 2>/dev/null || true &&
 docker system prune -a --volumes -f
 """
+addpermissions = """
+sudo chown -R 1000:1000 ./static ./media ./staticfiles || true &&
+sudo chmod -R 755 ./static ./media ./staticfiles
+"""
 startweb = 'python manage.py runserver 0.0.0.0:8000'

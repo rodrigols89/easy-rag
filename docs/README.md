@@ -2,12 +2,14 @@
 
 ## Conteúdo
 
- - [`Criando o projeto (django) core`](#create-core)
- - [`Exportando as dependências com o Poetry`](#poetry-export)
- - [`Instalando o Docker`](#docker-install)
- - [`Criando o container PostgreSQL (db)`](#db-container)
- - [`Criando o container Redis (redis_cache)`](#redis-container)
- - [`Criando o container web: Dockerfile + Django + Uvicorn`](#web-container)
+ - [`01 - Criando o projeto (django) core`](#create-core)
+ - [`02 - Exportando as dependências com o Poetry`](#poetry-export)
+ - [`03 - Instalando o Docker`](#docker-install)
+ - [`04 - Criando o container PostgreSQL (db)`](#db-container)
+ - [`05 - Criando o container Redis (redis_cache)`](#redis-container)
+ - [`06 - Criando o container web: Dockerfile + Django + Uvicorn`](#web-container)
+ - [`07 - Criando o container Nginx (nginx)`](#nginx-container)
+ - [`Variáveis de Ambiente`](#env-vars)
  - [`Comandos Taskipy`](#taskipy-commands)
 <!---
 [WHITESPACE RULES]
@@ -57,7 +59,7 @@
 
 <div id="create-core"></div>
 
-## `Criando o projeto (django) core`
+## `01 - Criando o projeto (django) core`
 
 De início vamos criar o `core` do nosso projeto:
 
@@ -115,7 +117,7 @@ python manage.py runserver
 
 <div id="poetry-export"></div>
 
-## `Exportando as dependências com o Poetry`
+## `02 - Exportando as dependências com o Poetry`
 
 Antes de criar nossos containers, precisamos gerar os `requirements.txt` e `requirements-dev.txt`:
 
@@ -182,7 +184,7 @@ poetry export --without-hashes --with dev --format=requirements.txt --output=req
 
 <div id="docker-install"></div>
 
-## `Instalando o Docker`
+## `03 - Instalando o Docker`
 
 Aqui nós vamos instalar o Docker na nossa maquina virtual (WSL2) que será utilizado na construção e manutenção dos nossos containers.
 
@@ -288,7 +290,7 @@ sudo usermod -aG docker $USER
 
 <div id="db-container"></div>
 
-## `Criando o container PostgreSQL (db)`
+## `04 - Criando o container PostgreSQL (db)`
 
 > Aqui nós vamos entender e criar um container contendo o `Banco de Dados PostgreSQL`.
 
@@ -469,7 +471,7 @@ docker volume inspect easy-rag_postgres_data
 
 <div id="redis-container"></div>
 
-## `Criando o container Redis (redis_cache)`
+## `05 - Criando o container Redis (redis_cache)`
 
 > Aqui nós vamos entender e criar um container contendo um `cache Redis`.
 
@@ -625,7 +627,7 @@ docker volume inspect easy-rag_redis_data
 
 <div id="web-container"></div>
 
-## `Criando o container web: Dockerfile + Django + Uvicorn`
+## `06 - Criando o container web: Dockerfile + Django + Uvicorn`
 
 Antes de criar o container contendo o *Django* e o *Uvicorn*, vamos criar o nosso Dockerfile...
 
@@ -746,7 +748,7 @@ docker run -it --rm -p 8000:8000 teste-django bash
  - **Desvantagens:**
    - Não serve arquivos estáticos eficientemente (por isso usamos o Nginx)
 
-Mas antes de criar nosso container contendo o *Django* e o *Uvicorn*, vamos criar as variáveis de ambiente para esse container:
+Antes de criar nosso container contendo o *Django* e o *Uvicorn*, vamos criar as variáveis de ambiente para esse container:
 
 [.env](../.env)
 ```bash
@@ -762,12 +764,6 @@ DJANGO_ALLOWED_HOSTS=*            # Hosts permitidos; * libera para qualquer hos
 # ==========================
 UVICORN_HOST=0.0.0.0              # Escutar em todas as interfaces
 UVICORN_PORT=8000                 # Porta interna do app
-
-# ==========================
-# CONFIGURAÇÃO DE USUÁRIO
-# ==========================
-UID=1000                          # UID do usuário no host
-GID=1000                          # GID do usuário no host
 ```
 
  - `DJANGO`
@@ -777,9 +773,6 @@ GID=1000                          # GID do usuário no host
  - `UVICORN`
    - `UVICORN_HOST` → define o IP/host onde o servidor Uvicorn vai rodar.
    - `UVICORN_PORT` → porta interna que o container expõe para o nginx ou para acesso direto no dev.
- - `USUARIO`
-   - `UID` → UID do usuário no host (Pego com o comando: `id -u`).
-   - `GID` → GID do usuário no host (Pego com o comando: `id -g`).
 
 Continuando, o arquivo [docker-compose.yml](../docker-compose.yml) para o nosso container *web* ficará assim:
 
@@ -792,7 +785,6 @@ services:
       dockerfile: Dockerfile
     container_name: django_web
     restart: always
-    user: "${UID}:${GID}"
     command: >
       sh -c "
       python manage.py migrate &&
@@ -829,8 +821,6 @@ networks:
    - 🔹 O container vai voltar sempre que o Docker daemon subir, independente do motivo da parada.
    - 🔹 Mesmo se você der *docker stop*, quando o host reiniciar o container volta sozinho.
    - 👉 Bom para produção quando você quer *99% de disponibilidade*.
- - `user: "${UID}:${GID}"`
-   - Define o user/UID/GID do container para o user do host.
  - `command`
    - `sh -c`
      - Executa um shell POSIX dentro do container e roda tudo o que estiver entre aspas como um único comando.
@@ -866,16 +856,25 @@ networks:
  - `networks: backend`
    - Rede interna para comunicação.
 
-**NOTE:**  
-Uma observação aqui é que você tem que criar as pastas `./static` e `./media` no host antes de executar o comando `docker compose up -d`.
+#### Crie as pastas `./static`, `./media` e `./staticfiles` no host
+
+Uma observação aqui é que antes de nós executamos o container web nós precisamos criar as pastas (diretórios) `./static`, `./media` e `./staticfiles` no host.
+
+> **Por que?**
+
+Porque se essas pastas (diretórios) forem criadas pelo container ela não terá as permissões do nosso usuário (do nosso sistema), elas virão com permissão root (do container).
+
+O comando para fazer isso é o seguinte:
 
 ```bash
-mkdir -p static media
+mkdir -p static media staticfiles
 ```
 
-> **Uma dúvida... tudo o que minha eu modifico no meu projeto principal é alterado no container?**
+Continuando...  
 
-**SIM!**
+> **Uma dúvida... tudo o que eu modifico no meu projeto principal é alterado no container?**
+
+**SIM!**  
 No nosso caso, sim — porque no serviço `web` você fez este mapeamento:
 
 [docker-compose.yml](../docker-compose.yml)
@@ -963,6 +962,293 @@ uvicorn         0.35.0
 
 
 
+
+
+
+
+
+
+---
+
+<div id="nginx-container"></div>
+
+## `07 - Criando o container Nginx (nginx)`
+
+> Aqui vamos entender e criar um container contendo o `Nginx (nginx)`.
+
+ - **Função:**
+   - Servir arquivos estáticos e atuar como *proxy reverso* para o Django.
+ - **Quando usar:**
+   - Sempre em produção para segurança e desempenho.
+ - **Reverse proxy:**
+   - Receber as requisições HTTP/HTTPS dos clientes.
+   - Redirecionar (proxy_pass) para seu container Django (web).
+   - Isso permite que seu backend fique “escondido” atrás do Nginx, ganhando segurança e performance.
+ - **Servir arquivos estáticos e de mídia diretamente:**
+   - Em Django, arquivos estáticos (/static/) e de upload (/media/) não devem ser servidos pelo Uvicorn (ineficiente).
+   - O Nginx é muito melhor para isso, então ele entrega esses arquivos direto do volume.
+ - **HTTPS (SSL/TLS):**
+   - Configurar certificados (ex.: Let’s Encrypt) para rodar sua aplicação com HTTPS.
+   - O Django não lida com certificados nativamente, então o Nginx faz esse papel.
+ - **Balanceamento e cache (futuro):**
+   - Se você crescer, pode colocar vários containers de Django e usar o Nginx como load balancer.
+   - Também pode configurar cache de páginas ou de assets.
+ - **Vantagens:**
+   - Muito rápido para servir arquivos estáticos.
+   - HTTPS e balanceamento de carga.
+ - **Desvantagens:**
+   - Exige configuração inicial extra.
+ - **👉 Resumindo:**
+   - O Nginx é a porta de entrada da sua aplicação, cuidando de performance, segurança e organização.
+
+Continuando, o arquivo [docker-compose.yml](../docker-compose.yml) para o nosso container *nginx* ficará assim:
+
+[docker-compose.yml](../docker-compose.yml)
+```yml
+services:
+  nginx:
+    image: nginx:1.27
+    container_name: nginx_reverse_proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./static:/code/staticfiles
+      - ./media:/code/media
+    depends_on:
+      - web
+    networks:
+      - backend
+
+networks:
+  backend:
+```
+
+ - `image: nginx:1.27`
+   - Pega a versão 1.27 oficial do Nginx no Docker Hub.
+ - `container_name: nginx_reverse_proxy`
+   - Nome fixo do container (para facilitar comandos como docker logs nginx_server).
+ - `restart: always`
+   - 🔹 O container vai voltar sempre que o Docker daemon subir, independente do motivo da parada.
+   - 🔹 Mesmo se você der *docker stop*, quando o host reiniciar o container volta sozinho.
+   - 👉 Bom para produção quando você quer *99% de disponibilidade*.
+ - `ports:`
+   - Mapeia portas do host para o container:
+     - `80:80` → HTTP
+     - `443:443` → HTTPS
+ - `volumes:`
+   - Pasta local `./nginx/conf` → onde ficam configs do Nginx.
+   - Volumes `static` e `media` para servir arquivos.
+ - `depends_on:`
+   - Só inicia depois que o `Django (web)` estiver rodando.
+ - `networks: backend`
+   - Rede interna para conversar com Django sem expor a aplicação diretamente.
+
+A configuração inicial do nosso Nginx ficará assim:
+
+[nginx.conf](../nginx/conf/nginx.conf)
+```bash
+server {
+    listen 80;
+
+    server_name _;  # or your domain, e.g., api.myproject.com
+
+    # Serve static files
+    location /static/ {
+        alias /code/staticfiles/;
+    }
+
+    # Serve media files
+    location /media/ {
+        alias /code/media/;
+    }
+
+    # Forward requests to Django (via Uvicorn)
+    location / {
+        proxy_pass http://web:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+O código acima faz o seguinte:
+
+ - `listen 80`
+   - Significa que o *Nginx* vai escutar requisições HTTP na porta 80 (porta padrão para tráfego HTTP).
+ - `server_name _;  # ou seu domínio, ex: api.meuprojeto.com`
+   - Define o nome do servidor.
+   - O `_ (underscore)` é um wildcard (coringa), ou seja, aceita qualquer domínio.
+   - Em produção, você substituiria por algo como *api.meuprojeto.com* ou *meusite.com*.
+ - `location /static/ {}`
+   - Esse bloco diz ao *Nginx* para servir diretamente os arquivos estáticos (CSS, JS, imagens de frontend, etc).
+   - Quando alguém acessa http://dominio.com/static/arquivo.css, o Nginx busca esse arquivo na pasta /code/staticfiles/ dentro do container.
+   - **NOTE:** alias é usado para apontar o caminho real dentro do container.
+ - `location /media/ {}`
+   - Semelhante ao anterior, mas para os arquivos de mídia (uploads de usuários, fotos de perfil, documentos, etc).
+   - Quando alguém acessa http://dominio.com/media/foto.png, o Nginx entrega diretamente o arquivo da pasta /code/media/.
+ - `location / {}`
+   - Esse bloco é o *proxy reverso* que encaminha todas as requisições que não são arquivos estáticos/mídia para o Django rodando no Uvicorn.
+   - `proxy_pass http://web:8000;` → Envia a requisição para o container *web* (Django) na porta *8000*.
+   - `proxy_set_header Host $host;` → Mantém o host original da requisição (importante para o Django saber qual domínio foi acessado).
+   - `proxy_set_header X-Real-IP $remote_addr;` → Passa o IP real do cliente.
+   - `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` → Mantém a cadeia de IPs (se passar por vários proxies).
+   - `proxy_set_header X-Forwarded-Proto $scheme;` → Informa se a requisição original veio por *http* ou *https*.
+
+> **Mas como eu testo seu meu nginx está funcionando corretamente?**
+
+Primeiro, vamos ver se há mensagem de erro dentor do container `nginx`:
+
+```bash
+docker logs nginx_reverse_proxy
+```
+
+**OUTPUT:**
+```bash
+/docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+/docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
+/docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+10-listen-on-ipv6-by-default.sh: info: /etc/nginx/conf.d/default.conf is not a file or does not exist
+/docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
+/docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+/docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
+/docker-entrypoint.sh: Configuration complete; ready for start up
+2025/08/19 00:52:35 [notice] 1#1: using the "epoll" event method
+2025/08/19 00:52:35 [notice] 1#1: nginx/1.27.5
+2025/08/19 00:52:35 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14)
+2025/08/19 00:52:35 [notice] 1#1: OS: Linux 6.6.87.2-microsoft-standard-WSL2
+2025/08/19 00:52:35 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2025/08/19 00:52:35 [notice] 1#1: start worker processes
+2025/08/19 00:52:35 [notice] 1#1: start worker process 20
+2025/08/19 00:52:35 [notice] 1#1: start worker process 21
+2025/08/19 00:52:35 [notice] 1#1: start worker process 22
+2025/08/19 00:52:35 [notice] 1#1: start worker process 23
+2025/08/19 00:52:35 [notice] 1#1: start worker process 24
+2025/08/19 00:52:35 [notice] 1#1: start worker process 25
+2025/08/19 00:52:35 [notice] 1#1: start worker process 26
+2025/08/19 00:52:35 [notice] 1#1: start worker process 27
+```
+
+Ótimo, agora vamos fazer alguns testes no navegador:
+
+ - http://localhost/static/ → deve exibir arquivos estáticos.
+ - http://localhost/media/ → deve exibir uploads.
+
+**OUTPUT:**
+```bash
+403 Forbidden
+nginx/1.27.5
+```
+
+> **What?** Não funcionou!
+
+Agora vamos tentar acessar um arquivo específico:
+
+ - http://localhost/static/admin/css/base.css
+ - http://localhost/static/admin/img/inline-delete.svg
+
+> **What?** Agora funcionou!
+
+Esse comportamento indica que o *Nginx* está conseguindo servir arquivos existentes, mas não consegue listar diretórios. Por padrão, o Nginx não habilita autoindex (listagem de diretórios).
+
+Então:
+
+ - http://localhost/static/admin/css/base.css → Funciona porque você está acessando um arquivo específico.
+ - http://localhost/static/ → Dá *403 Forbidden* porque você está acessando o diretório, e o Nginx não lista o conteúdo (diretório) por padrão.
+
+> **Como resolver isso?**
+
+#### 1️⃣ Habilitar autoindex (não recomendado para produção, só para teste):
+
+[nginx.conf](../nginx/conf/nginx.conf)
+```bash
+location /static/ {
+    alias /code/staticfiles/;
+    autoindex on;
+}
+
+location /media/ {
+    alias /code/media/;
+    autoindex on;
+}
+```
+
+> **NOTE:**  
+> Isso permite ver os arquivos listados no navegador, mas não é seguro em produção, porque expõe todos os arquivos publicamente.
+
+#### 2️⃣ Testar apenas arquivos específicos (recomendado):
+
+Abra diretamente algum arquivo, como:
+
+ - http://localhost/static/admin/css/base.css
+ - http://localhost/media/example.txt
+   - Crie esse arquivo em `/media (host)` antes de tentar acessar (testar).
+
+Se esses arquivos carregarem, significa que tudo está correto para servir conteúdo estático e uploads, mesmo que a listagem do diretório não funcione.
+
+> **💡 Resumo:**  
+> O erro `403` ao acessar `/static/` ou `/media/` é normal no Nginx quando você não habilita `autoindex`. Para produção, você normalmente não quer listar diretórios, apenas servir arquivos diretamente.
+
+Outra maneira de testar se o Nginx está funcionando corretamente seria usar o `curl`:
+
+```bash
+curl http://localhost/static/admin/css/base.css -I
+```
+
+**OUTPUT:**
+```bash
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Tue, 19 Aug 2025 02:29:18 GMT
+Content-Type: text/css
+Content-Length: 22120
+Last-Modified: Tue, 19 Aug 2025 01:58:34 GMT
+Connection: keep-alive
+ETag: "68a3da4a-5668"
+Accept-Ranges: bytes
+```
+
+```bash
+curl http://localhost/media/example.txt -I
+```
+
+**OUTPUT:**
+```bash
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Tue, 19 Aug 2025 02:30:17 GMT
+Content-Type: text/plain
+Content-Length: 15
+Last-Modified: Tue, 19 Aug 2025 02:26:29 GMT
+Connection: keep-alive
+ETag: "68a3e0d5-f"
+Accept-Ranges: bytes
+```
+
+```bash
+curl http://localhost/static/admin/img/inline-delete.svg -I
+```
+
+**OUTPUT:**
+```bash
+HTTP/1.1 200 OK
+Server: nginx/1.27.5
+Date: Tue, 19 Aug 2025 02:33:07 GMT
+Content-Type: image/svg+xml
+Content-Length: 537
+Last-Modified: Tue, 19 Aug 2025 01:58:34 GMT
+Connection: keep-alive
+ETag: "68a3da4a-219"
+Accept-Ranges: bytes
+```
+
+ - Vejam que quem está servindo os dados é o servidor Nginx e não o Django (container web).
+ - Além, disso nós também estamos vendo algumas informações interessantes sobre os arquivos:
+   - tipo: `text/css`, `text/plain`, `image/svg+xml`, etc.
 
 
 
@@ -3328,6 +3614,89 @@ uvicorn         0.35.0
 
 ---
 
+<div id="env-vars"></div>
+
+## `Variáveis de Ambiente`
+
+Aqui só para fins de estudos (entendimento) vamos mostrar as variáveis de ambiente do nosso projeto:
+
+[.env](../.env)
+```bash
+# ==========================
+# CONFIGURAÇÃO DO POSTGRES
+# ==========================
+POSTGRES_DB=easy_rag_db           # Nome do banco de dados a ser criado
+POSTGRES_USER=easyrag             # Usuário do banco
+POSTGRES_PASSWORD=easyragpass     # Senha do banco
+POSTGRES_HOST=db                  # Nome do serviço (container) do banco no docker-compose
+POSTGRES_PORT=5432                # Porta padrão do PostgreSQL
+
+# ==========================
+# CONFIGURAÇÃO DO REDIS
+# ==========================
+REDIS_HOST=redis                  # Nome do serviço (container) do Redis no docker-compose
+REDIS_PORT=6379                   # Porta padrão do Redis
+
+# ==========================
+# CONFIGURAÇÃO DJANGO
+# ==========================
+DJANGO_SECRET_KEY=djangopass      # Chave secreta do Django para criptografia e segurança
+DJANGO_DEBUG=True                 # True para desenvolvimento; False para produção
+DJANGO_ALLOWED_HOSTS=*            # Hosts permitidos; * libera para qualquer host
+
+# ==========================
+# CONFIGURAÇÃO DO UVICORN
+# ==========================
+UVICORN_HOST=0.0.0.0              # Escutar em todas as interfaces
+UVICORN_PORT=8000                 # Porta interna do app
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
 <div id="taskipy-commands"></div>
 
 ## `Comandos Taskipy`
@@ -3428,6 +3797,32 @@ docker system prune -a --volumes -f
 ```
 
  - Limpa todos os *containers*, *imagens*, *volumes* e *cache* do Docker.
+
+### Comandos do Sistema (OS)
+
+```toml
+addpermissions = """
+sudo chown -R 1000:1000 ./static ./media ./staticfiles || true &&
+sudo chmod -R 755 ./static ./media ./staticfiles
+"""
+```
+
+ - `sudo chown -R 1000:1000 ./static ./media ./staticfiles || true`
+   - `sudo` → Executa o comando com privilégios de administrador.
+   - `chown -R 1000:1000` → Altera o dono e grupo de todos os arquivos e pastas *recursivamente (-R)* para *UID=1000* e *GID=1000*.
+   - `./static ./media ./staticfiles` → Pastas (ou poderiam ser arquivos) alvo do comando.
+   - `|| true` → Significa “se o comando falhar, não interrompa a execução”:
+     - Útil se você estiver rodando sem sudo ou se o usuário já for dono.
+   - **Resumo:** garante que todas as pastas e arquivos pertencem ao usuário 1000:1000, evitando problemas de permissões.
+ - `&& sudo chmod -R 755 ./static ./media ./staticfiles`
+   - `&&` → Só executa o próximo comando se o anterior tiver sucesso.
+   - `chmod -R 755` → Altera permissões recursivamente:
+     - `7 (rwx)` para o dono → leitura, escrita e execução.
+     - `5 (r-x)` para grupo e outros → leitura e execução, mas não escrita.
+   - `./static ./media ./staticfiles` → pastas alvo.
+   - **Resumo:** garante que:
+     - O dono pode ler, escrever e executar arquivos/pastas.
+     - Grupo e outros podem apenas ler e executar (necessário para o Nginx servir os arquivos).
 
 ---
 

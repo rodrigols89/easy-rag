@@ -27,7 +27,6 @@ services:
       dockerfile: Dockerfile
     container_name: django_web
     restart: always
-    user: "${UID}:${GID}"
     command: >
       sh -c "
       python manage.py migrate &&
@@ -45,6 +44,21 @@ services:
       - redis
     ports:
       - "${UVICORN_PORT}:${UVICORN_PORT}"
+    networks:
+      - backend
+  nginx:
+    image: nginx:1.27
+    container_name: nginx_reverse_proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./static:/code/staticfiles
+      - ./media:/code/media
+    depends_on:
+      - web
     networks:
       - backend
 

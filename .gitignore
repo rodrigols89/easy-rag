@@ -1,6 +1,7 @@
 # Django static and media
 /static/
 /media/
+/staticfiles/
 
 # Ignore PostgreSQL
 postgres_data/

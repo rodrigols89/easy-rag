@@ -9,6 +9,7 @@
  - [`05 - Criando o container Redis (redis_cache)`](#redis-container)
  - [`06 - Criando o container web: Dockerfile + Django + Uvicorn`](#web-container)
  - [`07 - Criando o container Nginx (nginx)`](#nginx-container)
+ - [`08 - Configurando o PostgreSQL como Banco de Dados do nosos projeto`](#db-setting)
  - [`Variáveis de Ambiente`](#env-vars)
  - [`Comandos Taskipy`](#taskipy-commands)
 <!---
@@ -1262,6 +1263,148 @@ Accept-Ranges: bytes
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="db-setting"></div>
+
+## `08 - Configurando o PostgreSQL como Banco de Dados do nosso projeto`
+
+> Aqui nós vamos configurar o PostgreSQL como Banco de Dados do nosso projeto.
+
+De início vamos definir no nosso [core/settings.py](../core/settings.py) o Banco de Dados:
+
+[core/settings.py](../core/settings.py)
+```python
+import os
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+        "PORT": os.getenv("POSTGRES_PORT", 5432),
+    }
+}
+```
+
+> **NOTE:**
+> Isso faz o Django pegar as configurações de Banco de Dados das nossas variáveis de ambiente: [.env](../.env)
+
+Agora nós precisamos instalar o driver do PostgreSQL:
+
+```bash
+poetry add psycopg2-binary@latest
+```
+
+Se você não tiver o `psycopg2-binary` instalado dentro do container ainda pode executar o seguinte comando:
+
+```bash
+docker compose exec web pip install psycopg2-binary
+```
+
+Com tudo configurado, crie as tabelas padrão do Django no Postgres:
+
+```bash
+docker compose exec web python manage.py migrate
+```
+
+> **NOTE:**
+> Isso vai criar as tabelas de *auth*, *admin*, *sessions*, etc.
+
+Agora vamos criar um *usuário admin* para acessar o painel do Django:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+Para testar se tudo está funcionando corretamente, E acesse no navegador:
+
+ - [http://localhost/admin/](http://localhost/admin/)
+
+> Ok, mas como eu sei que isso está funcionando corretamente? Ou seja, minha aplicação está utilizando esse banco de dados (Postgres)?
+
+Uma maneira é testar diretamente no container e ver se ele tem as tabelas comuns do Django, como `auth_user`, `django_migrations`, `django_session`, etc.:
+
+**Entrar no container "postgres_db" via bash:**
+```bash
+docker exec -it postgres_db bash
+```
+
+**Entra no banco de sados a partir das variáveis de ambiente:**
+```bash
+psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+```
+
+**Listar as tabelas no banco de dados (que você está conectado - easy_rag_db):**
+```bash
+\dt
+```
+
+**OUTPUT:**
+```bash
+                   List of relations
+ Schema |            Name            | Type  |  Owner
+--------+----------------------------+-------+---------
+ public | auth_group                 | table | easyrag
+ public | auth_group_permissions     | table | easyrag
+ public | auth_permission            | table | easyrag
+ public | auth_user                  | table | easyrag
+ public | auth_user_groups           | table | easyrag
+ public | auth_user_user_permissions | table | easyrag
+ public | django_admin_log           | table | easyrag
+ public | django_content_type        | table | easyrag
+ public | django_migrations          | table | easyrag
+ public | django_session             | table | easyrag
+(10 rows)
+```
+
+Para finalizar vamos fazer só mais um teste verificando de o usuário admin foi criado:
+
+```bash
+SELECT id, username, email, password FROM auth_user;
+```
+
+**OUTPUT:**
+```bash
+ id | username |           email            |                                         password
+----+----------+----------------------------+-------------------------------------------------------------------------------------------
+  1 | drigols  | drigols.creative@gmail.com | pbkdf2_sha256$1000000$l54dNAB9qZCB3WXotk4Y9J$XgYHNWGZuIx0bZWba9PKRfeCazSAg2h3hGJeGz0fkeE=
+(1 row)
+```
 
 
 

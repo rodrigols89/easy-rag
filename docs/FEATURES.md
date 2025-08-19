@@ -25,7 +25,7 @@ Sistema web moderno de RAG (Retrieval-Augmented Generation) com autenticação, 
 - **Implementação**:
   - [V] Docker Compose com PostgreSQL, Redis, Django
   - Estrutura de projeto Django + DRF
-  - Setup inicial do banco de dados
+  - [V] Setup inicial do banco de dados
   - Configuração do Celery para tasks assíncronas
 - **Testes**:
   - ✅ Conectividade com PostgreSQL

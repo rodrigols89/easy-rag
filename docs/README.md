@@ -10,6 +10,8 @@
  - [`06 - Criando o container web: Dockerfile + Django + Uvicorn`](#web-container)
  - [`07 - Criando o container Nginx (nginx)`](#nginx-container)
  - [`08 - Configurando o PostgreSQL como Banco de Dados do nosos projeto`](#db-setting)
+ - [`09 - Entendendo: Tasks Assíncronas e Celery no Django`](#understanding-async-celery)
+ - [`10 - Fazendo o Celery reconhecer o Django e vice-versa`](#create-core-celery)
  - [`Variáveis de Ambiente`](#env-vars)
  - [`Comandos Taskipy`](#taskipy-commands)
 <!---
@@ -62,13 +64,13 @@
 
 ## `01 - Criando o projeto (django) core`
 
-De início vamos criar o `core` do nosso projeto:
+De início vamos criar o projeto `core` com o comando:
 
 ```bash
 django-admin startproject core .
 ```
 
-Agora é só executar:
+Agora é só executar o comando:
 
 ```bash
 python manage.py runserver
@@ -120,23 +122,21 @@ python manage.py runserver
 
 ## `02 - Exportando as dependências com o Poetry`
 
-Antes de criar nossos containers, precisamos gerar os `requirements.txt` e `requirements-dev.txt`:
+> Antes de criar nossos containers, precisamos gerar os `requirements.txt` e `requirements-dev.txt`.
 
-**Primeiro devemos instalar o plugin "export" do Poetry:**
+**Mas, primeiro devemos instalar o plugin "export" do Poetry:**
 ```bash
 poetry self add poetry-plugin-export
 ```
 
-Agora vamos gerar `requirements.txt` de produção.
+Agora vamos gerar `requirements.txt` de *produção*:
 
-**Produção:**
 ```bash
 poetry export --without-hashes --format=requirements.txt --output=requirements.txt
 ```
 
-Agora vamos gerar `requirements-dev.txt` (esse é mais utilizado durante o desenvolvimento para quem não usa o Poetry):
+Continuando, agora vamos gerar `requirements-dev.txt` (esse é mais utilizado durante o desenvolvimento para quem não usa o Poetry):
 
-**Desenvolvimento:**
 ```bash
 poetry export --without-hashes --with dev --format=requirements.txt --output=requirements-dev.txt
 ```
@@ -187,7 +187,7 @@ poetry export --without-hashes --with dev --format=requirements.txt --output=req
 
 ## `03 - Instalando o Docker`
 
-Aqui nós vamos instalar o Docker na nossa maquina virtual (WSL2) que será utilizado na construção e manutenção dos nossos containers.
+> Aqui nós vamos instalar o Docker na nossa maquina virtual (WSL2 no meu caso) que será utilizado na construção e manutenção dos nossos containers.
 
 **Atualizar pacotes:**
 ```bash
@@ -232,7 +232,7 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 ```
 
-**O Docker, por padrão, só permite que o root (ou membros do grupo `docker`) executem comandos. Criar o grupo `docker` permite conceder permissão a usuários comuns sem precisar usar sudo o tempo todo:**
+**O Docker, por padrão, só permite que o root (ou membros do grupo `docker`) executem comandos. Criar o grupo `docker` permite conceder permissão a usuários comuns sem precisar usar *sudo* o tempo todo:**
 ```bash
 sudo groupadd docker
 ```
@@ -1451,7 +1451,289 @@ SELECT id, username, email, password FROM auth_user;
 
 
 
+---
 
+<div id="understanding-async-celery"></div>
+
+## `09 - Entendendo: Tasks Assíncronas e Celery no Django`
+
+> Aqui nós vamos entender o que são **"Tasks Assíncronas"** e **"Celery"** no contexto do nosso projeto (Django).
+
+#### 🔹 O que são Tasks Assíncronas no contexto do nosso projeto?
+
+**👉 Para que servem:**
+
+ - Tasks assíncronas são operações que **não precisam ser executadas imediatamente dentro do fluxo da requisição** (request/response).  
+ - Em vez de bloquear o usuário esperando a conclusão, a aplicação delega a execução da tarefa para um sistema de filas (queue), que roda em segundo plano.
+
+**👉 Quando utilizar:**
+
+ - Sempre que a tarefa não precisar de resposta imediata para o usuário.
+ - Quando a operação for demorada (segundos/minutos).
+ - Quando você quiser distribuir carga em vários workers (paralelismo).
+
+**👉 Desvantagens:**
+
+ - Aumento da complexidade da arquitetura.
+ - Necessidade de monitorar fila e workers.
+ - Pode haver atraso no processamento dependendo da carga.
+
+#### 🔹 O que é o Celery?
+
+**👉 Para que serve:**
+
+> O *Celery* é um framework que permite rodar tasks assíncronas em projetos Python/Django.
+Ele usa um message broker (Redis, RabbitMQ, etc.) para gerenciar a fila de tarefas.
+
+Fluxo simplificado:
+
+ 1. Django dispara a task.
+ 2. A task é colocada no broker (ex: Redis).
+ 3. Um ou mais workers Celery processam as tasks em paralelo.
+ 4. A resposta é opcional (pode salvar logs, status ou resultados).
+
+**👉 Quando utilizar:**
+
+ - Projetos que precisam de tarefas em segundo plano (ex: e-mails, relatórios, notificações).
+ - Situações em que escalabilidade e paralelismo são necessários.
+ - Quando quiser agendar jobs (ex: executar algo todo dia às 6h).
+
+**👉 Vantagens:**
+
+ - Madura e consolidada (muito usada na comunidade Django).
+ - Integração nativa com Redis e RabbitMQ.
+ - Suporte a retries automáticos, agendamento e monitoramento.
+ - Permite criar workflows complexos (chaining, groups de tasks).
+
+**👉 Desvantagens:**
+
+ - Pode ser "overkill" para projetos pequenos.
+ - Configuração inicial mais trabalhosa (precisa de Redis/RabbitMQ + workers).
+ - Requer atenção extra para manter workers rodando em produção.
+
+#### ⚡ Resumo prático
+
+ - **Tasks assíncronas** → Conceito (qualquer job rodando em background).
+ - **Celery** → Ferramenta que implementa isso no nosso projeto.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="create-core-celery"></div>
+
+## `10 - Fazendo o Celery reconhecer o Django e vice-versa`
+
+> Sabendo que **"Celery é um task queue manager (gerenciador de filas de tarefas assíncronas)"**.
+
+Ou seja:
+
+> Ele tira tarefas pesadas ou demoradas do fluxo principal do Django e executa em segundo plano, usando workers.
+
+Vamos criar o arquivo [core/celery.py](../core/celery.py) que vai ser responsável por fazer o Celery reconhece as nossas configurações do Django.
+
+#### `Por que precisamos do core/celery.py?`
+
+Esse arquivo é o **ponto central de configuração do Celery dentro do Django**:
+
+ - Ele inicializa o app Celery.
+ - Faz o Django e Celery conversarem (carrega configurações do `settings.py`).
+ - Define onde o Celery vai procurar tasks no projeto (app.autodiscover_tasks).
+
+> **NOTE:**  
+> Sem ele, o Celery não sabe “quem é o Django” nem onde procurar as funções assíncronas.
+
+[core/celery.py](../core/celery.py)
+```python
+from __future__ import annotations
+
+import os
+
+from celery import Celery
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+
+app = Celery("core")
+app.config_from_object("django.conf:settings", namespace="CELERY")
+app.autodiscover_tasks()
+
+
+@app.task(bind=True)
+def debug_task(self):
+    print(f"Request: {self.request!r}")
+    return "ok"
+```
+
+No código acima as partes mais importantes (não que as outras não sejam) são:
+
+ - `os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")`
+   - Diz ao Celery qual `settings.py` usar (o mesmo do Django).
+   - Sem isso, o Celery não consegue acessar configs do Django, como banco de dados, Redis, etc.
+ - `app = Celery("core")`
+   - Cria a instância principal do Celery, chamada `app`.
+   - O "core" é só o nome (costuma ser igual ao nome do projeto).
+ - `app.config_from_object("django.conf:settings", namespace="CELERY")`
+   - Faz o Celery ler configs do Django.
+   - No `core/settings.py`, usamos variáveis como:
+     - CELERY_BROKER_URL = redis://redis:6379/0"
+     - CELERY_RESULT_BACKEND = "redis://redis:6379/0"
+ - `app.autodiscover_tasks()`
+   - Faz o Celery procurar automaticamente por `tasks.py` *"em cada app Django"*.
+   - Assim, basta criar um arquivo `tasks.py` em qualquer app e o Celery já reconhece.
+ - `Função debug_task()`
+   - Uma task de exemplo para você rodar celery -A core worker -l info e verificar se está funcionando.
+
+#### `Como o Django reconhece esse core/celery.py?`
+
+Para isso nós precisamos configurar isso em `core/__init__.py`:
+
+[core/__init__.py](../core/__init__.py)
+```python
+from .celery import app as celery_app
+
+__all__ = ("celery_app",)
+```
+
+> **NOTE:**  
+> - Isso faz o Django expor a instância do Celery sempre que o projeto for carregado.
+> - Sem esse import, o Celery não "linka" direito com o Django.
+
+#### `Configurações do Celery no settings.py`
+
+Continuando... O arquivo `core/settings.py` centraliza todas as configurações do Django. Quando adicionamos o Celery, precisamos definir:
+
+ - Onde ele vai buscar as tarefas (fila);
+ - Onde vai armazenar os resultados;
+ - Como serializar os dados;
+ - Como lidar com timezone e testes.
+
+**📝 Passo 1 – Configuração do Broker e Backend:**
+[core/settings.py](../core/settings.py)
+```python
+# --- Celery broker/result backend from env ---
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/1")
+```
+
+**🔎 Explicação:**
+
+ - **Broker (CELERY_BROKER_URL): é o "mensageiro".**
+   - Ele recebe as tasks criadas pelo Django e distribui para os workers.
+   - Aqui usamos o Redis como broker (redis://redis:6379/0).
+   - O `0` significa que ele vai usar a database `0` do Redis.
+ - **Result Backend (CELERY_RESULT_BACKEND): guarda os resultados das tasks.**
+   - Exemplo: se você dispara uma task que gera um PDF, o backend pode armazenar o status e o resultado.
+   - Aqui usamos também o Redis, mas na database `1 (:1)` → assim separamos tráfego de tasks (fila) e resultados.
+ - **os.getenv()**
+   - Usamos `os.getenv()` → para permitir configurar via `.env`. Se não encontrar, usa os valores padrão (Redis rodando no container redis).
+
+**📝 Passo 2 – Segurança na serialização:**
+[core/settings.py](../core/settings.py)
+```python
+# Segurança de serialization (evitar pickle)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+```
+
+**🔎 Explicação:**
+
+ - **Por padrão, o Celery poderia usar Pickle para serializar mensagens:**
+   - O que é inseguro, pode permitir execução de código malicioso.
+ - **Aqui definimos para usar apenas JSON:**
+   - `CELERY_ACCEPT_CONTENT` → Só aceita mensagens em JSON.
+   - `CELERY_TASK_SERIALIZER` → Tasks enviadas são serializadas em JSON.
+
+> **Quais vantagens e desvantagens?**
+
+ - **✅ Vantagem:**
+   - Segurança e compatibilidade.
+ - **⚠️ Desvantagem:**
+   - JSON é limitado, não suporta objetos Python complexos (precisa converter).
+
+**📝 Passo 3 – Configuração de Timezone:**
+[core/settings.py](../core/settings.py)
+```python
+# Timezone
+CELERY_TIMEZONE = TIME_ZONE = "UTC"
+CELERY_ENABLE_UTC = True
+```
+
+**🔎 Explicação:**
+
+ - `TIME_ZONE` = "UTC" → Django roda internamente em UTC (boa prática para sistemas globais).
+ - `CELERY_TIMEZONE` → Mantém Celery sincronizado com Django.
+ - `CELERY_ENABLE_UTC` = True → garante que as tasks sejam executadas em UTC.
+
+> **Quais vantagens e desvantagens?**
+
+ - **✅ Vantagem:**
+   - Evita problemas com fuso horário (ex.: horários errados em tasks agendadas).
+ - **⚠️ Desvantagem:**
+   - Se você quiser logs em horário local, precisa ajustar depois.
+
+**📝 Passo 4 – Configuração de Testes:**
+[core/settings.py](../core/settings.py)
+```python
+# Testes
+CELERY_TASK_ALWAYS_EAGER = True
+```
+
+**🔎 Explicação:**
+
+ - `CELERY_TASK_ALWAYS_EAGER` → Se True, as tasks não vão para Redis, são executadas imediatamente e no mesmo processo do Django.
+ - Isso é útil em ambiente local de desenvolvimento para testar tasks sem precisar subir Celery + Redis.
+
+> **Quais vantagens e desvantagens?**
+
+ - **✅ Vantagem:**
+   - Facilita debug e desenvolvimento.
+ - **⚠️ Desvantagem:**
+   - Não simula o ambiente real → em produção sempre deixe como False.
 
 
 
@@ -3768,30 +4050,42 @@ Aqui só para fins de estudos (entendimento) vamos mostrar as variáveis de ambi
 # ==========================
 # CONFIGURAÇÃO DO POSTGRES
 # ==========================
-POSTGRES_DB=easy_rag_db           # Nome do banco de dados a ser criado
-POSTGRES_USER=easyrag             # Usuário do banco
-POSTGRES_PASSWORD=easyragpass     # Senha do banco
-POSTGRES_HOST=db                  # Nome do serviço (container) do banco no docker-compose
-POSTGRES_PORT=5432                # Porta padrão do PostgreSQL
+POSTGRES_DB=easy_rag_db                     # Nome do banco de dados a ser criado
+POSTGRES_USER=easyrag                       # Usuário do banco
+POSTGRES_PASSWORD=easyragpass               # Senha do banco
+POSTGRES_HOST=db                            # Nome do serviço (container) do banco no docker-compose
+POSTGRES_PORT=5432                          # Porta padrão do PostgreSQL
 
 # ==========================
 # CONFIGURAÇÃO DO REDIS
 # ==========================
-REDIS_HOST=redis                  # Nome do serviço (container) do Redis no docker-compose
-REDIS_PORT=6379                   # Porta padrão do Redis
+REDIS_HOST=redis                            # Nome do serviço (container) do Redis no docker-compose
+REDIS_PORT=6379                             # Porta padrão do Redis
 
 # ==========================
 # CONFIGURAÇÃO DJANGO
 # ==========================
-DJANGO_SECRET_KEY=djangopass      # Chave secreta do Django para criptografia e segurança
-DJANGO_DEBUG=True                 # True para desenvolvimento; False para produção
-DJANGO_ALLOWED_HOSTS=*            # Hosts permitidos; * libera para qualquer host
+DJANGO_SECRET_KEY=djangopass                # Chave secreta do Django para criptografia e segurança
+DJANGO_DEBUG=True                           # True para desenvolvimento; False para produção
+DJANGO_ALLOWED_HOSTS=*                      # Hosts permitidos; * libera para qualquer host
 
 # ==========================
 # CONFIGURAÇÃO DO UVICORN
 # ==========================
-UVICORN_HOST=0.0.0.0              # Escutar em todas as interfaces
-UVICORN_PORT=8000                 # Porta interna do app
+UVICORN_HOST=0.0.0.0                        # Escutar em todas as interfaces
+UVICORN_PORT=8000                           # Porta interna do app
+
+# ==========================
+# CONFIGURAÇÃO DO CELERY
+# ==========================
+
+# Celery / Redis
+CELERY_BROKER_URL=redis://redis:6379/0      # Onde as tasks vão ser enfileiradas (Redis service redis no compose)
+CELERY_RESULT_BACKEND=redis://redis:6379/1  # Onde o resultado das tasks será guardado (usar Redis DB 1 separado é comum)
+
+# Optional - For unit tests
+CELERY_TASK_ALWAYS_EAGER=False
+CELERY_TASK_EAGER_PROPAGATES=True
 ```
 
 

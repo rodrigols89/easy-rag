@@ -6,11 +6,38 @@ authors = [
     {name = "rodrigols89",email = "rodrigols89.inbox@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<4.0"
 dependencies = [
 ]
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.14.0"
+pytest = "^8.4.2"
+taskipy = "^1.14.1"
+pre-commit = "^4.3.0"
+
+[tool.ruff]
+line-length = 79
+exclude = [
+    "core/settings.py",
+]
+
+[tool.ruff.lint]
+preview = true
+select = ['I', 'F', 'E', 'W', 'PL', 'PT']
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = '-p no:warnings'
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.taskipy.tasks]
+lint = 'ruff check'
+pre_format = 'ruff check --fix'
+format = 'ruff format'
+precommit = 'pre-commit run --all-files'
+pre_test = 'task lint'
+test = 'pytest -s -x --cov=. -vv'

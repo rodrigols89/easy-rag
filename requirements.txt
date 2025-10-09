@@ -1,0 +1,8 @@
+asgiref==3.10.0 ; python_version >= "3.12" and python_version < "4.0"
+click==8.3.0 ; python_version >= "3.12" and python_version < "4.0"
+colorama==0.4.6 ; python_version >= "3.12" and python_version < "4.0" and platform_system == "Windows"
+django==5.2.7 ; python_version >= "3.12" and python_version < "4.0"
+h11==0.16.0 ; python_version >= "3.12" and python_version < "4.0"
+sqlparse==0.5.3 ; python_version >= "3.12" and python_version < "4.0"
+tzdata==2025.2 ; python_version >= "3.12" and python_version < "4.0" and sys_platform == "win32"
+uvicorn==0.37.0 ; python_version >= "3.12" and python_version < "4.0"

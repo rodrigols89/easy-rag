@@ -8,6 +8,8 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12,<4.0"
 dependencies = [
+    "django (>=5.2.7,<6.0.0)",
+    "uvicorn (>=0.37.0,<0.38.0)"
 ]
 
 [tool.poetry.group.dev.dependencies]
@@ -41,3 +43,15 @@ format = 'ruff format'
 precommit = 'pre-commit run --all-files'
 pre_test = 'task lint'
 test = 'pytest -s -x --cov=. -vv'
+post_test = 'coverage html'
+prodcompose = 'docker compose -f docker-compose.yml up --build -d'
+devcompose = 'docker compose up -d'
+rcontainers = 'docker compose up -d --force-recreate'
+stopdocker = 'docker stop $(docker ps -q)'
+cleandocker = """
+docker stop $(docker ps -aq) 2>/dev/null || true &&
+docker rm $(docker ps -aq) 2>/dev/null || true &&
+docker rmi -f $(docker images -aq) 2>/dev/null || true &&
+docker volume rm $(docker volume ls -q) 2>/dev/null || true &&
+docker system prune -a --volumes -f
+"""

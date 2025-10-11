@@ -2,16 +2,18 @@
 
 ## Conteúdo
 
- - [`001 - Adicionando .editorconfig e .gitignore`](#editorconfig-gitignore)
- - [`002 - Iniciando o projeto com "poetry init"`](#poetry-init)
- - [`003 - Instalando e configurando o Ruff`](#ruff-settings-pyproject)
- - [`004 - Instalando e configurando o Pytest`](#pytest-settings-pyproject)
- - [`005 - Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
- - [`006 - Instalando e configurando o pre-commit`](#precommit-settings)
- - [`007 - Instalando o Django + Uvicorn e criando o projeto "core"`](#install-django-core)
- - [`008 - Configurando o core/settings.py para reconhecer arquivos estáticos, templates e media`](#core-settings-initial)
- - [`009 - Exportando as dependências com o Poetry`](#poetry-export)
- - [`010 - Criando o container web: Dockerfile + Django + Uvicorn`](#web-container)
+ - [`01 - Adicionando .editorconfig e .gitignore`](#editorconfig-gitignore)
+ - [`02 - Iniciando o projeto com "poetry init"`](#poetry-init)
+ - [`03 - Instalando e configurando o Ruff`](#ruff-settings-pyproject)
+ - [`04 - Instalando e configurando o Pytest`](#pytest-settings-pyproject)
+ - [`05 - Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
+ - [`06 - Instalando e configurando o pre-commit`](#precommit-settings)
+ - [`07 - Instalando o Django + Uvicorn e criando o projeto "core"`](#install-django-core)
+ - [`08 - Configurando o core/settings.py para reconhecer arquivos estáticos, templates e media`](#core-settings-initial)
+ - [`09 - Exportando as dependências com o Poetry`](#poetry-export)
+ - [`10 - Criando o container web: Dockerfile + Django + Uvicorn`](#web-container)
+ - [`11 - Criando o template base.html e mapeando com o register.html`](#create-base-html)
+ - [`12 - Criando o App users e relacionando o base.html com o register.html`](#create-users-app)
  - **Comandos úteis:**
    - [`Comandos Taskipy`](#taskipy-commands)
 <!---
@@ -62,7 +64,7 @@
 
 <div id="editorconfig-gitignore"></div>
 
-## `001 - Adicionando .editorconfig e .gitignore`
+## `01 - Adicionando .editorconfig e .gitignore`
 
 De início vamos adicionar os arquivos `.editorconfig` e `.gitignore` na raiz do projeto:
 
@@ -138,7 +140,7 @@ indent_size = 2
 
 <div id="poetry-init"></div>
 
-## `002 - Iniciando o projeto com "poetry init"`
+## `02 - Iniciando o projeto com "poetry init"`
 
 Agora vamos iniciar nosso projeto com `poetry init`:
 
@@ -191,7 +193,7 @@ poetry init
 
 <div id="ruff-settings-pyproject"></div>
 
-## `003 - Instalando e configurando o Ruff`
+## `03 - Instalando e configurando o Ruff`
 
 De início no nosso projeto a primeira coisa que vamos fazer é instalar e configurar o **Ruff** no nosso `pyproject.toml`:
 
@@ -303,7 +305,7 @@ quote-style = "double"
 
 <div id="pytest-settings-pyproject"></div>
 
-## `004 - Instalando e configurando o Pytest`
+## `04 - Instalando e configurando o Pytest`
 
 Agora nós vamos instalar e configurar o **Pytest** no nosso `pyproject.toml`.
 
@@ -374,7 +376,7 @@ addopts = '-p no:warnings'
 
 <div id="taskipy-settings-pyproject"></div>
 
-## `005 - Instalando e configurando o Taskipy`
+## `05 - Instalando e configurando o Taskipy`
 
 Agora nós vamos instalar e configurar o **Taskipy** no nosso `pyproject.toml`.
 
@@ -470,7 +472,7 @@ makemigrations = 'python manage.py makemigrations'
 
 <div id="precommit-settings"></div>
 
-## `006 - Instalando e configurando o pre-commit`
+## `06 - Instalando e configurando o pre-commit`
 
 Para garantir que antes de cada commit seu projeto passe por:
 
@@ -578,7 +580,7 @@ precommit = 'pre-commit run --all-files'
 
 <div id="install-django-core"></div>
 
-## `007 - Instalando o Django + Uvicorn e criando o projeto "core"`
+## `07 - Instalando o Django + Uvicorn e criando o projeto "core"`
 
 Agora nós vamos instalar o Django e criar o projeto `core`:
 
@@ -657,7 +659,7 @@ exclude = [
 
 <div id="core-settings-initial"></div>
 
-## `008 - Configurando o core/settings.py para reconhecer arquivos estáticos, templates e media`
+## `08 - Configurando o core/settings.py para reconhecer arquivos estáticos, templates e media`
 
 Outro passo importante é configurar o nosso projeto para reconhecer arquivos estáticos, templates e media:
 
@@ -741,7 +743,7 @@ MEDIA_URL = "/media/"
 
 <div id="poetry-export"></div>
 
-## `009 - Exportando as dependências com o Poetry`
+## `09 - Exportando as dependências com o Poetry`
 
 > Antes de criar nossos containers, precisamos gerar os `requirements.txt` e `requirements-dev.txt`.
 
@@ -808,7 +810,7 @@ poetry export --without-hashes --with dev --format=requirements.txt --output=req
 
 <div id="web-container"></div>
 
-## `010 - Criando o container web: Dockerfile + Django + Uvicorn`
+## `10 - Criando o container web: Dockerfile + Django + Uvicorn`
 
 Antes de criar o container contendo o *Django* e o *Uvicorn*, vamos criar o nosso Dockerfile...
 
@@ -1066,7 +1068,7 @@ Isso significa que:
  - Qualquer alteração nos arquivos do seu projeto no host aparece instantaneamente no container.
  - E o inverso também vale: se você mudar algo dentro do container nessa pasta, muda no seu host.
 
-Continuando... agora é só criar o container:
+Continuando, agora é só criar o container:
 
 **Cria o(s) container(s) em background:**
 ```bash
@@ -1105,6 +1107,213 @@ uvicorn         0.35.0
 Por fim, você pode ir no seu `locaohost` e verificar se o container está rodando com Django e Uvicorn:
 
  - [http://localhost:8000/](http://localhost:8000/)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="create-base-html"></div>
+
+## `11 - Criando o template base.html e mapeando com o register.html`
+
+É comum em projetos Django nós termos um template base que vai ter configurações globais:
+
+[templates/base.html](../templates/base.html)
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        {% block 'content' %}
+        {% endblock 'content' %}
+    </body>
+</html>
+```
+
+> **NOTE:**  
+> Agora quem desejar utilizar esse template é só herdar (extends) esse template.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="create-users-app"></div>
+
+## `12 - Criando o App users e relacionando o base.html com o register.html`
+
+Agora vamos cria ro App `users` que vai ser responsável por representar os usuários do nosso projeto:
+
+ - Cadastro (register);
+ - Login;
+ - Permissões...
+
+```bash
+python manage.py startapp users
+```
+
+Continuando, vamos adicionar o App as configurações do nosso projeto `core/settings.py`:
+
+[core/settings.py](../core/settings.py)
+```python
+INSTALLED_APPS = [
+
+    ....
+
+    'users',
+]
+```
+
+Agora vamos criar uma ROTA/URL chamada `users`:
+
+[core/urls.py](../core/urls.py)
+```python
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("users/", include("users.urls")),
+]
+```
+
+ - `path("users/", include("users.urls"))`
+   - Aqui nós estamos criando uma rota `users/`
+   - Que vai redirecionar para o App `users` no arquivo `urls`.
+
+Bem, nós ainda não temos esse arquivo `users/urls.py`, então é só criar ele.
+
+> Mas o que colocar em `users/urls.py`?
+
+**NOTE:**  
+É comum nós relacionarmos esse arquivo `users/urls.py` com sub ROTAS/URLs que por sua vez fazem alguma ação (view) no projeto.
+
+Por exemplo, vamos dizer que a nossa rota `users/` vai ter uma sub rota `register/` que por sua vez vai ter uma ação (view) relacionada:
+
+[users/urls.py](../users/urls.py)
+```python
+from django.urls import path, include
+from . import views
+
+urlpatterns = [
+    path("register/", views.register, name="register"),
+]
+```
+
+Bem, agora nós temos:
+
+ - Uma sub rota de `users` que vai ficar como `users/register/`;
+ - Que vai chamar uma *ação (view)* chamada `register`.
+
+> Mas o que esse ação (view) faz?
+
+De início vamos imaginar que ela vai chamar um arquivo `register.html`:
+
+[users/views.py](../users/views.py)
+```python
+from django.shortcuts import render
+
+def register(request):
+    if request.method == 'GET':
+        return render(request, 'register.html')
+```
+
+Vejam que primeiro nós estamos verificando se a requisição é do tipo `GET` e se for nós renderizamos o arquivo `register.html`.
+
+> Mas onde está esse arquivo `register.html`?
+
+Bem, nós precisamos criar esse arquivo `register.html`:
+
+[users/templates/register.html](../users/templates/register.html)
+```html
+<h1>Easy RAG</h1>
+<button>Register</button>
+```
+
+> **NOTE:**  
+> Agora é só rodar o servidor Django e verificar na sub rota `users/register/`.
 
 
 

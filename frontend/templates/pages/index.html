@@ -4,4 +4,50 @@
 
 {% block content %}
     <h1>Easy RAG</h1>
+
+    <!-- Formulário de login básico -->
+    <form method="post" action="">
+        {% csrf_token %}
+        <!-- Username -->
+        <div>
+            <label for="username">Username</label><br>
+            <input type="text"
+                id="username"
+                name="username"
+                autocomplete="username"
+                required>
+        </div>
+        <!-- Password -->
+        <div>
+            <label for="password">Password</label><br>
+            <input type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                required>
+        </div>
+        <!-- Botão de submit -->
+        <div>
+            <button type="submit">Entrar</button>
+        </div>
+    </form>
+
+    <br/>
+
+    <!-- Botões para login social (placeholders) -->
+    <div>
+        <a href="">
+            <button type="button">Entrar com Google</button>
+        </a>
+        <a href="">
+            <button type="button">Entrar com GitHub</button>
+        </a>
+    </div>
+
+    <br/>
+
+    <!-- Link para cadastro -->
+    <div">
+        <a href="">Cadastrar</a>
+    </div>
 {% endblock %}

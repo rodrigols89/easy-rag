@@ -1,0 +1,4 @@
+services:
+  db:
+    expose:
+      - "5432"

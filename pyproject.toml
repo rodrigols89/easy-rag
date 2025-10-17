@@ -47,3 +47,14 @@ post_test = 'coverage html'
 runserver = 'python manage.py runserver'
 uvicorn = 'uvicorn core.asgi:application --reload --env-file .env'
 killserver = 'sudo kill -9 $(sudo lsof -t -i:8000)'  # Kill service/port 8000
+execdb = 'docker exec -it postgres_db bash'
+prodcompose = 'docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d'
+devcompose = 'docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d'
+downcontainers = 'docker compose down -v'
+cleancontainers = """
+docker stop $(docker ps -aq) 2>/dev/null || true &&
+docker rm $(docker ps -aq) 2>/dev/null || true &&
+docker rmi -f $(docker images -aq) 2>/dev/null || true &&
+docker volume rm $(docker volume ls -q) 2>/dev/null || true &&
+docker system prune -a --volumes -f
+"""

@@ -12,6 +12,7 @@
  - [`Instalando o Django e criando o projeto "core"`](#install-django-core)
  - [`Configurções iniciais do Django (templates, static, media)`](#init-django-settings)
  - [`Criando o App "frontend" e a página index.html`](#index-landing)
+ - [`Criando a página de cadastro (create-account.html)`](#create-account)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -933,6 +934,157 @@ Finalmente, se você abrir o projeto (site) na rota/url principal vai aparecer e
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="create-account"></div>
+
+## `Criando a página de cadastro (create-account.html)`
+
+> Aqui nós vamos apenas criar e configurar a rota/url para a nossa `página de cadastro`.
+
+[frontend/templates/pages/create-account.html](../frontend/templates/pages/create-account.html)
+```html
+{% extends "base.html" %}
+
+{% block title %}Criar Conta — Easy RAG{% endblock %}
+
+{% block content %}
+    <h1>Criar Conta</h1>
+
+    <!-- Formulário de cadastro -->
+    <form method="post" action="">
+    {% csrf_token %}
+
+        <!-- Username -->
+        <div>
+            <label for="username">Username</label><br>
+            <input type="text"
+                    id="username"
+                    name="username"
+                    autocomplete="username"
+                    required>
+        </div>
+
+        <!-- Email -->
+        <div>
+            <label for="email">Email</label><br>
+            <input type="email"
+                    id="email"
+                    name="email"
+                    autocomplete="email"
+                    required>
+        </div>
+
+        <!-- Password -->
+        <div>
+            <label for="password1">Senha</label><br>
+            <input type="password"
+                    id="password1"
+                    name="password1"
+                    autocomplete="new-password"
+                    required>
+        </div>
+
+        <!-- Confirm Password -->
+        <div>
+            <label for="password2">Confirmar Senha</label><br>
+            <input type="password"
+                    id="password2"
+                    name="password2"
+                    autocomplete="new-password"
+                    required>
+        </div>
+
+        <!-- Botão de submit -->
+        <div>
+            <button type="submit">Cadastrar</button>
+        </div>
+
+    </form>
+
+    <br/>
+
+    <!-- Link para voltar ao login -->
+    <div>
+        <a href="/">Já tem uma conta? Fazer login</a>
+    </div>
+{% endblock %}
+```
+
+Agora vamos criar uma rota/url para essa `página de cadastro`:
+
+[frontend/urls.py](../frontend/urls.py)
+```python
+from django.urls import path
+
+from .views import index, create_account
+
+urlpatterns = [
+    path(route="", view=index, name="index"),
+    path(route="create-account/", view=create_account, name="create-account"),
+]
+```
+
+Agora vamos criar uma view (ação) para essa `página de cadastro`:
+
+[frontend/views.py](../frontend/views.py)
+```python
+from django.shortcuts import render
+
+
+def create_account(request):
+    if request.method == "GET":
+        return render(request, "pages/create-account.html")
+```
+
+> **Mas como acessar essa página?**
+
+Bem, nós precisamos modificar o `index.html` para sempre que algum usuário clicar em "Cadastrar", ele seja redirecionado para essa `página de cadastro`:
+
+[frontend/templates/pages/index.html](../frontend/templates/pages/index.html)
+```html
+<!-- Link para cadastro -->
+<div>
+    <a href="{% url 'create-account' %}">Cadastrar</a>
+</div>
+```
+
+> **NOTE:**  
+> Lembrando que nós temos que fazer o mesmo na página de cadastro para voltar ao login.
+
+[frontend/templates/pages/create-account.html](../frontend/templates/pages/create-account.html)
+```html
+<!-- Link para voltar ao login -->
+<div>
+    <a href="/">Já tem uma conta? Fazer login</a>
+</div>
+```
 
 
 

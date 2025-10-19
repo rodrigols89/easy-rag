@@ -13,6 +13,7 @@
  - [`Configurções iniciais do Django (templates, static, media)`](#init-django-settings)
  - [`Criando o App "frontend" e a página index.html`](#index-landing)
  - [`Criando a página de cadastro (create-account.html)`](#create-account)
+ - [`Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -1095,6 +1096,69 @@ Bem, nós precisamos modificar o `index.html` para sempre que algum usuário cli
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="psycopg2-binary"></div>
+
+## `Instalando a biblioteca psycopg2-binary`
+
+ - Este é o driver oficial do PostgreSQL para Python — o Django usa ele internamente para conversar com o banco.
+ - **NOTE:** Sem ele, o Django não consegue abrir a conexão porque depende de um driver nativo específico do PostgreSQL.
+
+```bash
+poetry add psycopg2-binary@latest
+```
+
+#### `⚙️ 2. O que o psycopg2-binary faz?`
+
+> Ele é a ponte entre o Django (Python) e o PostgreSQL (servidor).
+
+Quando o Django executa algo como:
+
+```bash
+User.objects.create(username="drigols")
+```
+
+internamente ele faz uma chamada SQL tipo:
+
+```sql
+INSERT INTO auth_user (username) VALUES ('drigols');
+```
+
+Mas pra enviar isso ao PostgreSQL, ele precisa de uma biblioteca cliente — e é aí que entra o psycopg2.
 
 
 

@@ -44,10 +44,12 @@ precommit = 'pre-commit run --all-files'
 pre_test = 'task lint'
 test = 'pytest -s -x --cov=. -vv'
 post_test = 'coverage html'
-runserver = 'python manage.py runserver'
-execdb = 'docker exec -it postgres_db bash'
-prodcompose = 'docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d'
+server = 'python manage.py runserver'
+killserver = 'sudo kill -9 $(sudo lsof -t -i:8000)'  # Kill service/port 8000
+uvicorn = 'uvicorn core.asgi:application --reload --env-file .env'
+opendb = "docker exec -it postgres_db psql -U easyrag -d easy_rag_db"
 devcompose = 'docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d'
+prodcompose = 'docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d'
 cleancontainers = """
 docker stop $(docker ps -aq) 2>/dev/null || true &&
 docker rm $(docker ps -aq) 2>/dev/null || true &&

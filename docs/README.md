@@ -8,12 +8,13 @@
  - [`Instalando e configurando o Pytest`](#pytest-settings-pyproject)
  - [`Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
  - [`Instalando e configurando o pre-commit`](#precommit-settings)
- - [`Criando os docker-compose da nossa aplicação`](#init-docker-compose)
+ - [`Criando os docker-compose (iniciais) da nossa aplicação`](#init-docker-compose)
+ - [`Criando o container com PostgreSQL`](#postgresql-container)
  - [`Instalando o Django e criando o projeto "core"`](#install-django-core)
  - [`Configurções iniciais do Django (templates, static, media)`](#init-django-settings)
- - [`Criando o App "frontend" e a página index.html`](#index-landing)
+ - [`Criando a landing page index.html`](#index-landing)
+ - [`Criando App users e um superusuario no Django Admin`](#app-users-more-django-admin)
  - [`Criando a página de cadastro (create-account.html)`](#create-account)
- - [`Criando o container com PostgreSQL`](#postgresql-container)
  - [`Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
  - [`Configurando o Django para reconhecer o PostgreSQL como Banco de Dados`](#django-setting-db)
 <!---
@@ -448,6 +449,7 @@ post_test = 'coverage html'
 
 
 
+
 ---
 
 <div id="precommit-settings"></div>
@@ -551,11 +553,12 @@ precommit = 'pre-commit run --all-files'
 
 
 
+
 ---
 
 <div id="init-docker-compose"></div>
 
-## `Criando os docker-compose da nossa aplicação`
+## `Criando os docker-compose (iniciais) da nossa aplicação`
 
 É comum em uma aplicação ter os seguintes *docker-composes*:
 
@@ -595,6 +598,116 @@ Agora vamos criar comandos no Taskipy para executar cada um dos docker-compose:
 prodcompose = 'docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d'
 devcompose = 'docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d'
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="postgresql-container"></div>
+
+## `Criando o container com PostgreSQL`
+
+Antes de iniciarmos as tarefas envolvendo Banco de Dados é claro que precisamos de um Banco de Dados para trabalhar. Sabendo disso vamos criar/configar um container com PostgreSQL.
+
+De início vamos configurar o que é comum tanto em **produção** quanto em **desenvolvimento** no *docker-compose base*:
+
+[docker-compose.yml](../docker-compose.yml)
+```yaml
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+```
+
+Agora vamos aplicar as configurações de produção e desenvolvimento separadamente:
+
+[docker-compose.dev.yml](../docker-compose.dev.yml)
+```yaml
+services:
+  db:
+    ports:
+      - "5432:5432"
+```
+
+[docker-compose.prod.yml](../docker-compose.prod.yml)
+```yaml
+services:
+  db:
+    expose:
+      - "5432"
+```
+
+Ótimo, agora é só executar os comandos criado com Taskipy para criar o container em modo **dev** ou **produção**.
+
+Também vamos ter esses comandos no Taskipy para nos ajudar no gerenciamento:
+
+[pyproject.toml](../pyproject.toml)
+```toml
+[tool.taskipy.tasks]
+opendb = "docker exec -it postgres_db psql -U easyrag -d easy_rag_db"
+devcompose = 'docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d'
+prodcompose = 'docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d'
+cleancontainers = """
+docker stop $(docker ps -aq) 2>/dev/null || true &&
+docker rm $(docker ps -aq) 2>/dev/null || true &&
+docker rmi -f $(docker images -aq) 2>/dev/null || true &&
+docker volume rm $(docker volume ls -q) 2>/dev/null || true &&
+docker system prune -a --volumes -f
+"""
+```
+
 
 
 
@@ -724,8 +837,6 @@ runserver = 'python manage.py runserver'
 
 
 
-
-
 ---
 
 <div id="init-django-settings"></div>
@@ -803,35 +914,52 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 
+
 ---
 
 <div id="index-landing"></div>
 
-## `Criando o App "frontend" e a página index.html`
+## `Criando a landing page index.html`
 
-> Bem, uma abordagem interessante (é a que vamos utilizar) é ter um projeto separado por **frontend** do **backend**.
+> Aqui nós vamos criar e configurar a `landing page` da nossa aplicação.
 
-De Início vamos criar (e configurar) o App `frontend` que será responsável por cuidar do frontend do projeto:
+Uma `landing page` pública geralmente contem:
 
-```bash
-python manage.py startapp frontend
-```
+ - Apresentação do produto/serviço.
+ - Botões de “Entrar” e “Cadastrar”.
+ - Sessões com informações sobre a empresa.
+ - Depoimentos, preços, etc.
 
-[core/settings.py](../core/settings.py)
+Vamos começar configurando a rota/url que vai ser nosso `/`:
+
+[core/urls.py](../core/urls.py)
 ```python
-INSTALLED_APPS = [
+from django.contrib import admin
+from django.urls import include, path
 
-    ....
-    'frontend',
+from .views import index
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path(route="", view=index, name="index"),
 ]
 ```
 
-> **NOTE:**  
-> Bem, se vocês pensarem comigo o ideal é que quando alguém entre no nosso projeto (site) já vá direto para a página `home.html` (a menos que ele já esteja logado é claro).
+Agora dentro do [core](../core) vamos criar uma view (ação) para essa `landing page`:
 
-Na verdade essa página não vai se chamar `home.html` e sim `index.html`:
+[core/views.py](../core/views.py)
+```python
+from django.shortcuts import render
 
-[frontend/templates/pages/index.html](../frontend/templates/pages/index.html)
+
+def index(request):
+    if request.method == "GET":
+        return render(request, "pages/index.html")
+```
+
+Por fim, vamos criar o HTML para essa `landing page`, por enquanto sem nenhuma estilização:
+
+[templates/pages/index.html](../templates/pages/index.html)
 ```html
 {% extends "base.html" %}
 
@@ -883,50 +1011,9 @@ Na verdade essa página não vai se chamar `home.html` e sim `index.html`:
 
     <!-- Link para cadastro -->
     <div>
-        <a href="">Cadastrar</a>
+        <a href="{% url 'create-account' %}">Cadastrar</a>
     </div>
 {% endblock %}
-```
-
-Isso é o que nós conhecemos como `landing page`, geralmente uma `landing page` pública contem:
-
- - Apresentação do produto/serviço.
- - Botões de “Entrar” e “Cadastrar”.
- - Sessões com informações sobre a empresa.
- - Depoimentos, preços, etc.
-
-Agora vamos configurar uma rota/url para assim que alguém abrir nosso projeto (site) seja direcionado para essa `landing page` (a menos que ele já esteja logado é claro):
-
-[core/urls.py](../core/urls.py)
-```python
-from django.contrib import admin
-from django.urls import include, path
-
-urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("", include("frontend.urls")),
-]
-```
-
-[frontend/urls.py](../frontend/urls.py)
-```python
-from django.urls import path
-
-from .views import index
-
-urlpatterns = [
-    path(route="", view=index, name="index"),
-]
-```
-
-[frontend/views.py](../frontend/views.py)
-```python
-from django.shortcuts import render
-
-
-def index(request):
-    if request.method == "GET":
-        return render(request, "pages/index.html")
 ```
 
 Finalmente, se você abrir o projeto (site) na rota/url principal vai aparecer essa `landing page`.
@@ -976,129 +1063,59 @@ Finalmente, se você abrir o projeto (site) na rota/url principal vai aparecer e
 
 ---
 
-<div id="create-account"></div>
+<div id="app-users-more-django-admin"></div>
 
-## `Criando a página de cadastro (create-account.html)`
+## `Criando App users e um superusuario no Django Admin`
 
-> Aqui nós vamos apenas criar e configurar a rota/url para a nossa `página de cadastro`.
+Aqui de início vamos criar o App `users` que vai ser responsável por armazenar os dados dos nossos usuários no Banco de Dados.
 
-[frontend/templates/pages/create-account.html](../frontend/templates/pages/create-account.html)
-```html
-{% extends "base.html" %}
-
-{% block title %}Criar Conta — Easy RAG{% endblock %}
-
-{% block content %}
-    <h1>Criar Conta</h1>
-
-    <!-- Formulário de cadastro -->
-    <form method="post" action="">
-    {% csrf_token %}
-
-        <!-- Username -->
-        <div>
-            <label for="username">Username</label><br>
-            <input type="text"
-                    id="username"
-                    name="username"
-                    autocomplete="username"
-                    required>
-        </div>
-
-        <!-- Email -->
-        <div>
-            <label for="email">Email</label><br>
-            <input type="email"
-                    id="email"
-                    name="email"
-                    autocomplete="email"
-                    required>
-        </div>
-
-        <!-- Password -->
-        <div>
-            <label for="password1">Senha</label><br>
-            <input type="password"
-                    id="password1"
-                    name="password1"
-                    autocomplete="new-password"
-                    required>
-        </div>
-
-        <!-- Confirm Password -->
-        <div>
-            <label for="password2">Confirmar Senha</label><br>
-            <input type="password"
-                    id="password2"
-                    name="password2"
-                    autocomplete="new-password"
-                    required>
-        </div>
-
-        <!-- Botão de submit -->
-        <div>
-            <button type="submit">Cadastrar</button>
-        </div>
-
-    </form>
-
-    <br/>
-
-    <!-- Link para voltar ao login -->
-    <div>
-        <a href="/">Já tem uma conta? Fazer login</a>
-    </div>
-{% endblock %}
+```bash
+python manage.py startapp users
 ```
 
-Agora vamos criar uma rota/url para essa `página de cadastro`:
-
-[frontend/urls.py](../frontend/urls.py)
+[core/settings.py](../core/settings.py)
 ```python
-from django.urls import path
-
-from .views import index, create_account
-
-urlpatterns = [
-    path(route="", view=index, name="index"),
-    path(route="create-account/", view=create_account, name="create-account"),
+INSTALLED_APPS = [
+    ...
+    'users',
 ]
 ```
 
-Agora vamos criar uma view (ação) para essa `página de cadastro`:
+Para não esquecer vamos já relacionar as rotas do App `users` no nosso projeto `core/urls.py`:
 
-[frontend/views.py](../frontend/views.py)
+[core/urls.py](../core/urls.py)
 ```python
-from django.shortcuts import render
+from django.contrib import admin
+from django.urls import include, path
 
+from .views import index
 
-def create_account(request):
-    if request.method == "GET":
-        return render(request, "pages/create-account.html")
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path(route="", view=index, name="index"),
+    path("", include("users.urls")),
+]
 ```
 
-> **Mas como acessar essa página?**
+Ótimo, agora vamos criar um super usuário para ver se esse usuário aparece no nosso Django Admin, mas antes nós precisamos aplicar as migrações iniciais de nossa base de dados:
 
-Bem, nós precisamos modificar o `index.html` para sempre que algum usuário clicar em "Cadastrar", ele seja redirecionado para essa `página de cadastro`:
-
-[frontend/templates/pages/index.html](../frontend/templates/pages/index.html)
-```html
-<!-- Link para cadastro -->
-<div>
-    <a href="{% url 'create-account' %}">Cadastrar</a>
-</div>
+```bash
+python manage.py migrate
 ```
+
+Pronto, agora que o nosso Banco de Dados foi iniciado vamos criar um superusuário:
+
+```bash
+python manage.py createsuperuser
+```
+
+Agora é só criar o Django Admin e verificar se temos a tabela `users`:
+
+ - [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
 
 > **NOTE:**  
-> Lembrando que nós temos que fazer o mesmo na página de cadastro para voltar ao login.
+> Se você clicar nela verá que nós só temos 1 usuário, que foi o `super usuário` que nós acabamos de cadastrar.
 
-[frontend/templates/pages/create-account.html](../frontend/templates/pages/create-account.html)
-```html
-<!-- Link para voltar ao login -->
-<div>
-    <a href="/">Já tem uma conta? Fazer login</a>
-</div>
-```
 
 
 
@@ -1143,54 +1160,209 @@ Bem, nós precisamos modificar o `index.html` para sempre que algum usuário cli
 
 ---
 
-<div id="postgresql-container"></div>
+<div id="create-account"></div>
 
-## `Criando o container com PostgreSQL`
+## `Criando a página de cadastro (create-account.html)`
 
-Antes de iniciarmos as tarefas envolvendo Banco de Dados é claro que precisamos de um Banco de Dados para trabalhar. Sabendo disso vamos criar/configar um container com PostgreSQL.
+> Aqui nós vamos criar e configurar a rota/url para a nossa `página de cadastro` dentro dos templates do nosso App `users`.
 
-De início vamos configurar o que é comum tanto em **produção** quanto em **desenvolvimento** no *docker-compose base*:
+De início vamos começar configurando a rota/url `create-account`:
 
-[docker-compose.yml](../docker-compose.yml)
-```yaml
-services:
-  db:
-    image: postgres:15
-    container_name: postgres_db
-    restart: always
-    env_file:
-      - .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
+[users/urls.py](../users/urls.py)
+```python
+from django.urls import path
 
-volumes:
-  postgres_data:
+from .views import create_account
 
-networks:
-  backend:
+urlpatterns = [
+    path(route="create-account/", view=create_account, name="create-account"),
+]
 ```
 
-Agora vamos aplicar as configurações de produção e desenvolvimento separadamente:
+Agora vamos criar uma view (ação) para quando alguém clicar em "Cadastrar", ele seja redirecionado para essa `página de cadastro`:
 
-[docker-compose.dev.yml](../docker-compose.dev.yml)
-```yaml
-services:
-  db:
-    ports:
-      - "5432:5432"
+[users/views.py](../users/views.py)
+```python
+from django.shortcuts import redirect, render
+
+
+def create_account(request):
+    if request.method == "GET":
+        return render(request, "pages/create-account.html")
 ```
 
-[docker-compose.prod.yml](../docker-compose.prod.yml)
-```yaml
-services:
-  db:
-    expose:
-      - "5432"
+> **E o formulário de cadastro?**
+
+Bem, primeiro vamos criar um [forms.py](../users/forms.py) para criar um formulário genêrico para o nosso App `users` utilizando de tudo o que o Django já tem pronto:
+
+[users/forms.py](../users/forms.py)
+```python
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
+
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ["username", "email", "password1", "password2"]
 ```
 
-Ótimo, agora é só executar os comandos criado com Taskipy para criar o container em modo **dev** ou **produção**.
+No código assim:
+
+ - `from django import forms`
+   - Importa o módulo `forms` do Django.
+   - Ele contém classes e tipos de campos (CharField, EmailField, IntegerField, etc.) que permitem criar formulários Python que se transformam em HTML.
+ - `from django.contrib.auth.forms import UserCreationForm`
+   - Importa o formulário de criação de usuário padrão do Django.
+   - Esse formulário já tem validações prontas:
+     - Verifica se o nome de usuário já existe;
+     - Verifica se a senha atende aos requisitos de segurança;
+     - Verifica se as duas senhas digitadas são iguais.
+     - 💡 Assim, você não precisa reescrever toda essa lógica manualmente — basta herdar dele.
+ - `from django.contrib.auth.models import User`
+   - Importa o modelo de usuário padrão do Django (a tabela *auth_user* do banco).
+   - É o modelo que o *UserCreationForm* usa para criar e salvar novos usuários.
+ - `class CustomUserCreationForm(UserCreationForm):`
+   - Cria uma nova classe chamada *"CustomUserCreationForm"* que herda de *"UserCreationForm"*.
+   - Isso significa que você está pegando toda a funcionalidade do formulário original e adicionando ou modificando o que quiser (nesse caso, o campo email).
+ - `email = forms.EmailField(required=True)`
+   - Adiciona um novo campo email ao formulário.
+   - O *"UserCreationForm"* original não pede email — ele só tem username, password1 e password2.
+   - Então, aqui você está dizendo:
+     - *“Quero que meu formulário também peça o email do usuário, e que esse campo seja obrigatório.”*
+     - O forms.EmailField valida automaticamente se o valor digitado parece um email válido (ex: tem @, etc.). 
+
+> **E essa classe interna *Meta*?**
+
+```python
+class Meta:
+    model = User
+    fields = ['username', 'email', 'password1', 'password2']
+```
+
+Essa classe interna `Meta` é uma configuração especial do Django Forms:
+
+| Atributo         | Função                                                                                                                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model = User`   | Diz ao Django qual modelo esse formulário vai manipular (no caso, o modelo `User`). Isso significa que, ao chamar `form.save()`, o Django sabe que deve criar um novo registro na tabela `auth_user`. |
+| `fields = [...]` | Lista **quais campos** do modelo (ou campos personalizados) aparecerão no formulário e na validação. A ordem dessa lista define a ordem dos campos no HTML.                                           |
+
+[refaça] - Nós poderíamos partir agora para o nossa view, mas o nosso HTML vai ser dinâmico, então vamos logo planejar (escrever ele em código) para depois fazer a view que vai criar o HTML dinamicamente.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ótimo, nós já temos um modelo de formulário com os campos *("username", "email", "password1", "password2")* necessários na hora de criar um novo usuário.
+
+> **E agora o que fazer?**  
+> Agora nós vamos implementar uma view (ação) para capturar esses dados e salvar no banco de dados.
+
+De início vamos verificar se o método é `POST`, ou seja, o usuário está enviando os dados do formulário:
+
+[users/views.py](../users/views.py)
+```python
+def create_account(request):
+    if request.method == "GET":
+        return render(request, "pages/create-account.html")
+    if request.method == "POST":
+        ...
+```
+
+Agora nós vamos importar o formulário customizado (CustomUserCreationForm) e passar para ele como argumento `request.POST`, ou seja, ele vai receber os dados que o usuário enviou:
+
+[users/views.py](../users/views.py)
+```python
+from users.forms import CustomUserCreationForm
+
+
+def create_account(request):
+    if request.method == "GET":
+        return render(request, "pages/create-account.html")
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+```
+
+> **O que tem dentro desse *form*?**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+> **Mas como acessar essa página?**
+
+Bem, nós precisamos modificar o `index.html` para sempre que algum usuário clicar em "Cadastrar", ele seja redirecionado para essa `página de cadastro`:
+
+[frontend/templates/pages/index.html](../frontend/templates/pages/index.html)
+```html
+<!-- Link para cadastro -->
+<div>
+    <a href="{% url 'create-account' %}">Cadastrar</a>
+</div>
+```
+
+> **NOTE:**  
+> Lembrando que nós temos que fazer o mesmo na página de cadastro para voltar ao login.
+
+[frontend/templates/pages/create-account.html](../frontend/templates/pages/create-account.html)
+```html
+<!-- Link para voltar ao login -->
+<div>
+    <a href="/">Já tem uma conta? Fazer login</a>
+</div>
+```
 
 
 

@@ -5,18 +5,21 @@ from users.forms import CustomUserCreationForm
 
 
 def create_account(request):
+    # Caso 1: Requisição GET → apenas exibe o formulário vazio
     if request.method == "GET":
-        return render(request, "pages/create-account.html")
-    if request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            form.save()  # cria o usuário no banco
-            return redirect("/")
-        else:
-            messages.error(request, "Corrija os erros abaixo.")
-    else:
-        # Se apenas abriu a página (GET), mostra o formulário vazio
         form = CustomUserCreationForm()
+        return render(request, "pages/create-account.html", {"form": form})
 
-    # Envia o form (com ou sem erros) para o template
-    return render(request, "pages/create-account.html", {"form": form})
+    # Caso 2: Requisição POST → processa o envio do formulário
+    elif request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+
+        # Se o formulário for válido, salva e redireciona
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Conta criada com sucesso! Faça login.")
+            return redirect("/")
+
+        # Se houver erros, mostra a mesma página com mensagens
+        messages.error(request, "Corrija os erros abaixo.")
+        return render(request, "pages/create-account.html", {"form": form})

@@ -3,62 +3,55 @@
 {% block title %}Criar Conta — Easy RAG{% endblock %}
 
 {% block content %}
-  <h1>Criar Conta</h1>
 
-  <!-- Exibe mensagens de sucesso ou erro -->
-  {% if messages %}
-    <ul>
-      {% for msg in messages %}
-        <li>{{ msg }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+    <h1>Criar Conta</h1>
 
-  <!-- Formulário de cadastro -->
-  <form method="post" action="">
-    {% csrf_token %}
+    {% if messages %}
+        <ul>
+            {% for msg in messages %}
+                <li>{{ msg }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 
-    <!-- Erros gerais do formulário -->
-    {{ form.non_field_errors }}
+    <form method="post" action="">
+        {% csrf_token %}
 
-    <!-- Campo username -->
+        {{ form.non_field_errors }}
+
+        <div>
+            {{ form.username.label_tag }}
+            {{ form.username }}
+            {{ form.username.errors }}
+        </div>
+
+        <div>
+            {{ form.email.label_tag }}
+            {{ form.email }}
+            {{ form.email.errors }}
+        </div>
+
+        <div>
+            {{ form.password1.label_tag }}
+            {{ form.password1 }}
+            {{ form.password1.errors }}
+        </div>
+
+        <div>
+            {{ form.password2.label_tag }}
+            {{ form.password2 }}
+            {{ form.password2.errors }}
+        </div>
+
+        <div>
+            <button type="submit">Cadastrar</button>
+        </div>
+    </form>
+
+    <br>
+
     <div>
-      {{ form.username.label_tag }}
-      {{ form.username }}
-      {{ form.username.errors }}
+        <a href="/">Já tem uma conta? Fazer login</a>
     </div>
 
-    <!-- Campo email -->
-    <div>
-      {{ form.email.label_tag }}
-      {{ form.email }}
-      {{ form.email.errors }}
-    </div>
-
-    <!-- Campo senha -->
-    <div>
-      {{ form.password1.label_tag }}
-      {{ form.password1 }}
-      {{ form.password1.errors }}
-    </div>
-
-    <!-- Campo confirmar senha -->
-    <div>
-      {{ form.password2.label_tag }}
-      {{ form.password2 }}
-      {{ form.password2.errors }}
-    </div>
-
-    <!-- Botão de envio -->
-    <div>
-      <button type="submit">Cadastrar</button>
-    </div>
-  </form>
-
-  <br>
-
-  <!-- Link de retorno -->
-  <div>
-    <a href="/">Já tem uma conta? Fazer login</a>
-  </div>
 {% endblock %}

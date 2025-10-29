@@ -2,21 +2,24 @@
 
 ## Conteúdo
 
- - [`Adicionando .editorconfig e .gitignore`](#editorconfig-gitignore)
- - [`Iniciando o projeto com "poetry init"`](#poetry-init)
- - [`Instalando e configurando o Ruff`](#ruff-settings-pyproject)
- - [`Instalando e configurando o Pytest`](#pytest-settings-pyproject)
- - [`Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
- - [`Instalando e configurando o pre-commit`](#precommit-settings)
- - [`Criando os docker-compose (iniciais) da nossa aplicação`](#init-docker-compose)
- - [`Criando o container com PostgreSQL`](#postgresql-container)
- - [`Instalando o Django e criando o projeto "core"`](#install-django-core)
- - [`Configurções iniciais do Django (templates, static, media)`](#init-django-settings)
- - [`Criando a landing page index.html`](#index-landing)
- - [`Criando App users e um superusuario no Django Admin`](#app-users-more-django-admin)
- - [`Criando a página de cadastro (create-account.html)`](#create-account)
- - [`Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
- - [`Configurando o Django para reconhecer o PostgreSQL como Banco de Dados`](#django-setting-db)
+ - [`01 - Adicionando .editorconfig e .gitignore`](#editorconfig-gitignore)
+ - [`02 - Iniciando o projeto com "poetry init"`](#poetry-init)
+ - [`03 - Instalando e configurando o Ruff`](#ruff-settings-pyproject)
+ - [`04 - Instalando e configurando o Pytest`](#pytest-settings-pyproject)
+ - [`05 - Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
+ - [`06 - Instalando e configurando o pre-commit`](#precommit-settings)
+ - [`07 - Criando os docker-compose (iniciais) da nossa aplicação`](#init-docker-compose)
+ - [`08 - Criando o container com PostgreSQL`](#postgresql-container)
+ - [`09 - Instalando o Django e criando o projeto "core"`](#install-django-core)
+ - [`10 - Configurções iniciais do Django (templates, static, media)`](#init-django-settings)
+ - [`11 - Criando a landing page index.html`](#index-landing)
+ - [`12 - Criando App users e um superusuario no Django Admin`](#app-users-more-django-admin)
+ - [`13 - Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
+ - [`14 - Configurando o Django para reconhecer o PostgreSQL como Banco de Dados`](#django-setting-db)
+ - [`15 - Criando a página de cadastro (create-account.html)`](#create-account)
+
+
+
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -65,7 +68,7 @@
 
 <div id="editorconfig-gitignore"></div>
 
-## `Adicionando .editorconfig e .gitignore`
+## `01 - Adicionando .editorconfig e .gitignore`
 
 De início vamos adicionar os arquivos `.editorconfig` e `.gitignore` na raiz do projeto:
 
@@ -140,7 +143,7 @@ indent_size = 2
 
 <div id="poetry-init"></div>
 
-## `Iniciando o projeto com "poetry init"`
+## `02 - Iniciando o projeto com "poetry init"`
 
 Agora vamos iniciar nosso projeto com `poetry init`:
 
@@ -192,7 +195,7 @@ poetry init
 
 <div id="ruff-settings-pyproject"></div>
 
-## `Instalando e configurando o Ruff`
+## `03 - Instalando e configurando o Ruff`
 
 Aqui vamos instalar e configurar o **Ruff** no nosso `pyproject.toml`:
 
@@ -302,7 +305,7 @@ quote-style = "double"
 
 <div id="pytest-settings-pyproject"></div>
 
-## `Instalando e configurando o Pytest`
+## `04 - Instalando e configurando o Pytest`
 
 Agora nós vamos instalar e configurar o **Pytest** no nosso `pyproject.toml`.
 
@@ -370,7 +373,7 @@ addopts = '-p no:warnings'
 
 <div id="taskipy-settings-pyproject"></div>
 
-## `Instalando e configurando o Taskipy`
+## `05 - Instalando e configurando o Taskipy`
 
 Agora nós vamos instalar e configurar o **Taskipy** no nosso `pyproject.toml`.
 
@@ -454,7 +457,7 @@ post_test = 'coverage html'
 
 <div id="precommit-settings"></div>
 
-## `Instalando e configurando o pre-commit`
+## `06 - Instalando e configurando o pre-commit`
 
 Para garantir que antes de cada commit seu projeto passe por:
 
@@ -558,7 +561,7 @@ precommit = 'pre-commit run --all-files'
 
 <div id="init-docker-compose"></div>
 
-## `Criando os docker-compose (iniciais) da nossa aplicação`
+## `07 - Criando os docker-compose (iniciais) da nossa aplicação`
 
 É comum em uma aplicação ter os seguintes *docker-composes*:
 
@@ -644,7 +647,7 @@ devcompose = 'docker compose -f docker-compose.yml -f docker-compose.dev.yml up 
 
 <div id="postgresql-container"></div>
 
-## `Criando o container com PostgreSQL`
+## `08 - Criando o container com PostgreSQL`
 
 Antes de iniciarmos as tarefas envolvendo Banco de Dados é claro que precisamos de um Banco de Dados para trabalhar. Sabendo disso vamos criar/configar um container com PostgreSQL.
 
@@ -753,7 +756,7 @@ docker system prune -a --volumes -f
 
 <div id="install-django-core"></div>
 
-## `Instalando o Django e criando o projeto "core"`
+## `09 - Instalando o Django e criando o projeto "core"`
 
 Agora nós vamos instalar o Django e criar o projeto `core`:
 
@@ -841,7 +844,7 @@ runserver = 'python manage.py runserver'
 
 <div id="init-django-settings"></div>
 
-## `Configurações iniciais do Django (templates, static, media)`
+## `10 - Configurações iniciais do Django (templates, static, media)`
 
 Aqui nós vamos fazer as configurações iniciais do Django que serão:
 
@@ -919,7 +922,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 <div id="index-landing"></div>
 
-## `Criando a landing page index.html`
+## `11 - Criando a landing page index.html`
 
 > Aqui nós vamos criar e configurar a `landing page` da nossa aplicação.
 
@@ -1065,7 +1068,7 @@ Finalmente, se você abrir o projeto (site) na rota/url principal vai aparecer e
 
 <div id="app-users-more-django-admin"></div>
 
-## `Criando App users e um superusuario no Django Admin`
+## `12 - Criando App users e um superusuario no Django Admin`
 
 Aqui de início vamos criar o App `users` que vai ser responsável por armazenar os dados dos nossos usuários no Banco de Dados.
 
@@ -1158,250 +1161,6 @@ Agora é só criar o Django Admin e verificar se temos a tabela `users`:
 
 
 
----
-
-<div id="create-account"></div>
-
-## `Criando a página de cadastro (create-account.html)`
-
-> Aqui nós vamos criar e configurar a rota/url para a nossa `página de cadastro` dentro dos templates do nosso App `users`.
-
-De início vamos começar configurando a rota/url `create-account`:
-
-[users/urls.py](../users/urls.py)
-```python
-from django.urls import path
-
-from .views import create_account
-
-urlpatterns = [
-    path(route="create-account/", view=create_account, name="create-account"),
-]
-```
-
-Agora vamos criar uma view (ação) para quando alguém clicar em "Cadastrar", ele seja redirecionado para essa `página de cadastro`:
-
-[users/views.py](../users/views.py)
-```python
-from django.shortcuts import redirect, render
-
-
-def create_account(request):
-    if request.method == "GET":
-        return render(request, "pages/create-account.html")
-```
-
-> **E o formulário de cadastro?**
-
-Bem, primeiro vamos criar um [forms.py](../users/forms.py) para criar um formulário genêrico para o nosso App `users` utilizando de tudo o que o Django já tem pronto:
-
-[users/forms.py](../users/forms.py)
-```python
-from django import forms
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
-
-
-class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(required=True)
-
-    class Meta:
-        model = User
-        fields = ["username", "email", "password1", "password2"]
-```
-
-No código assim:
-
- - `from django import forms`
-   - Importa o módulo `forms` do Django.
-   - Ele contém classes e tipos de campos (CharField, EmailField, IntegerField, etc.) que permitem criar formulários Python que se transformam em HTML.
- - `from django.contrib.auth.forms import UserCreationForm`
-   - Importa o formulário de criação de usuário padrão do Django.
-   - Esse formulário já tem validações prontas:
-     - Verifica se o nome de usuário já existe;
-     - Verifica se a senha atende aos requisitos de segurança;
-     - Verifica se as duas senhas digitadas são iguais.
-     - 💡 Assim, você não precisa reescrever toda essa lógica manualmente — basta herdar dele.
- - `from django.contrib.auth.models import User`
-   - Importa o modelo de usuário padrão do Django (a tabela *auth_user* do banco).
-   - É o modelo que o *UserCreationForm* usa para criar e salvar novos usuários.
- - `class CustomUserCreationForm(UserCreationForm):`
-   - Cria uma nova classe chamada *"CustomUserCreationForm"* que herda de *"UserCreationForm"*.
-   - Isso significa que você está pegando toda a funcionalidade do formulário original e adicionando ou modificando o que quiser (nesse caso, o campo email).
- - `email = forms.EmailField(required=True)`
-   - Adiciona um novo campo email ao formulário.
-   - O *"UserCreationForm"* original não pede email — ele só tem username, password1 e password2.
-   - Então, aqui você está dizendo:
-     - *“Quero que meu formulário também peça o email do usuário, e que esse campo seja obrigatório.”*
-     - O forms.EmailField valida automaticamente se o valor digitado parece um email válido (ex: tem @, etc.). 
-
-> **E essa classe interna *Meta*?**
-
-```python
-class Meta:
-    model = User
-    fields = ['username', 'email', 'password1', 'password2']
-```
-
-Essa classe interna `Meta` é uma configuração especial do Django Forms:
-
-| Atributo         | Função                                                                                                                                                                                                |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model = User`   | Diz ao Django qual modelo esse formulário vai manipular (no caso, o modelo `User`). Isso significa que, ao chamar `form.save()`, o Django sabe que deve criar um novo registro na tabela `auth_user`. |
-| `fields = [...]` | Lista **quais campos** do modelo (ou campos personalizados) aparecerão no formulário e na validação. A ordem dessa lista define a ordem dos campos no HTML.                                           |
-
-[refaça] - Nós poderíamos partir agora para o nossa view, mas o nosso HTML vai ser dinâmico, então vamos logo planejar (escrever ele em código) para depois fazer a view que vai criar o HTML dinamicamente.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Ótimo, nós já temos um modelo de formulário com os campos *("username", "email", "password1", "password2")* necessários na hora de criar um novo usuário.
-
-> **E agora o que fazer?**  
-> Agora nós vamos implementar uma view (ação) para capturar esses dados e salvar no banco de dados.
-
-De início vamos verificar se o método é `POST`, ou seja, o usuário está enviando os dados do formulário:
-
-[users/views.py](../users/views.py)
-```python
-def create_account(request):
-    if request.method == "GET":
-        return render(request, "pages/create-account.html")
-    if request.method == "POST":
-        ...
-```
-
-Agora nós vamos importar o formulário customizado (CustomUserCreationForm) e passar para ele como argumento `request.POST`, ou seja, ele vai receber os dados que o usuário enviou:
-
-[users/views.py](../users/views.py)
-```python
-from users.forms import CustomUserCreationForm
-
-
-def create_account(request):
-    if request.method == "GET":
-        return render(request, "pages/create-account.html")
-    if request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
-```
-
-> **O que tem dentro desse *form*?**
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-> **Mas como acessar essa página?**
-
-Bem, nós precisamos modificar o `index.html` para sempre que algum usuário clicar em "Cadastrar", ele seja redirecionado para essa `página de cadastro`:
-
-[frontend/templates/pages/index.html](../frontend/templates/pages/index.html)
-```html
-<!-- Link para cadastro -->
-<div>
-    <a href="{% url 'create-account' %}">Cadastrar</a>
-</div>
-```
-
-> **NOTE:**  
-> Lembrando que nós temos que fazer o mesmo na página de cadastro para voltar ao login.
-
-[frontend/templates/pages/create-account.html](../frontend/templates/pages/create-account.html)
-```html
-<!-- Link para voltar ao login -->
-<div>
-    <a href="/">Já tem uma conta? Fazer login</a>
-</div>
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1410,7 +1169,7 @@ Bem, nós precisamos modificar o `index.html` para sempre que algum usuário cli
 
 <div id="psycopg2-binary"></div>
 
-## `Instalando a biblioteca psycopg2-binary`
+## `13 - Instalando a biblioteca psycopg2-binary`
 
  - Este é o driver oficial do PostgreSQL para Python — o Django usa ele internamente para conversar com o banco.
  - **NOTE:** Sem ele, o Django não consegue abrir a conexão porque depende de um driver nativo específico do PostgreSQL.
@@ -1484,7 +1243,7 @@ Mas pra enviar isso ao PostgreSQL, ele precisa de uma biblioteca cliente — e �
 
 <div id="django-setting-db"></div>
 
-## `Configurando o Django para reconhecer o PostgreSQL (+ .env) como Banco de Dados`
+## `14 - Configurando o Django para reconhecer o PostgreSQL (+ .env) como Banco de Dados`
 
 Antes de começar a configurar o Django para reconhecer o PostgreSQL como Banco de Dados, vamos fazer ele reconhecer as variáveis de ambiente dentro de [core/settings.py](../core/settings.py).
 
@@ -1730,21 +1489,368 @@ Running migrations:
 
 
 
+---
+
+<div id="create-account"></div>
+
+## `15 - Criando a página de cadastro (create-account.html)`
+
+> Aqui nós vamos criar e configurar a nossa `página de cadastro`.
+
+De início vamos começar configurando a rota/url `create-account`:
+
+[users/urls.py](../users/urls.py)
+```python
+from django.urls import path
+
+from .views import create_account
+
+urlpatterns = [
+    path(route="create-account/", view=create_account, name="create-account"),
+]
+```
+
+Agora, antes de criar a view (ação) que vai ser responsável por redirecionar o usuário para a página de cadastro (GET) e enviar os dados para o Banco de Dados (POST) vamos criar um formulário customizado.
+
+Para fazer esse formulário customizado vamos criar o arquivo [users/forms.py](../users/forms.py) que nada mais é que um classe para criar um formulário genêrico para o nosso App `users` utilizando de tudo o que o Django já tem pronto:
+
+[users/forms.py](../users/forms.py)
+```python
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 
 
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ["username", "email", "password1", "password2"]
+```
+
+No código assim:
+
+ - `from django import forms`
+   - Importa o módulo `forms` do Django.
+   - Ele contém classes e tipos de campos (CharField, EmailField, IntegerField, etc.) que permitem criar formulários Python que se transformam em HTML.
+ - `from django.contrib.auth.forms import UserCreationForm`
+   - Importa o formulário de criação de usuário padrão do Django.
+   - Esse formulário já tem validações prontas:
+     - Verifica se o nome de usuário já existe;
+     - Verifica se a senha atende aos requisitos de segurança;
+     - Verifica se as duas senhas digitadas são iguais.
+     - 💡 Assim, você não precisa reescrever toda essa lógica manualmente — basta herdar dele.
+ - `from django.contrib.auth.models import User`
+   - Importa o modelo de usuário padrão do Django (a tabela *auth_user* do banco).
+   - É o modelo que o *UserCreationForm* usa para criar e salvar novos usuários.
+ - `class CustomUserCreationForm(UserCreationForm):`
+   - Cria uma nova classe chamada *"CustomUserCreationForm"* que herda de *"UserCreationForm"*.
+   - Isso significa que você está pegando toda a funcionalidade do formulário original e adicionando ou modificando o que quiser (nesse caso, o campo email).
+ - `email = forms.EmailField(required=True)`
+   - Adiciona um novo campo email ao formulário.
+   - O *"UserCreationForm"* original não pede email — ele só tem username, password1 e password2.
+   - Então, aqui você está dizendo:
+     - *“Quero que meu formulário também peça o email do usuário, e que esse campo seja obrigatório.”*
+     - O forms.EmailField valida automaticamente se o valor digitado parece um email válido (ex: tem @, etc.). 
+
+> **E essa classe interna *Meta*?**
+
+```python
+class Meta:
+    model = User
+    fields = ['username', 'email', 'password1', 'password2']
+```
+
+Essa classe interna `Meta` é uma configuração especial do Django Forms:
+
+| Atributo         | Função                                                                                                                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model = User`   | Diz ao Django qual modelo esse formulário vai manipular (no caso, o modelo `User`). Isso significa que, ao chamar `form.save()`, o Django sabe que deve criar um novo registro na tabela `auth_user`. |
+| `fields = [...]` | Lista **quais campos** do modelo (ou campos personalizados) aparecerão no formulário e na validação. A ordem dessa lista define a ordem dos campos no HTML.                                           |
+
+> **NOTE:**  
+> Ótimo, nós já temos um modelo de formulário com os campos *("username", "email", "password1", "password2")* necessários na hora de criar um novo usuário.
+
+Agora vamos criar uma view (ação) para:
+
+ - Quando alguém clicar em "Cadastrar" na [landing page (index.html)](../templates/pages/index.html) seja redirecionado para [página de cadastro (create-account.html)](../users/templates/pages/create-account.html).
+ - E quando alguém cadastrar algum usuário (corretamente), ele seja salvo no Banco de Dados e depois redirecionado para a [landing page (index.html)](../templates/pages/index.html).
+
+[users/views.py](../users/views.py)
+```python
+from django.contrib import messages
+from django.shortcuts import redirect, render
+
+from users.forms import CustomUserCreationForm
 
 
+def create_account(request):
+    # Caso 1: Requisição GET → apenas exibe o formulário vazio
+    if request.method == "GET":
+        form = CustomUserCreationForm()
+        return render(request, "pages/create-account.html", {"form": form})
 
+    # Caso 2: Requisição POST → processa o envio do formulário
+    elif request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
 
+        # Se o formulário for válido, salva e redireciona
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Conta criada com sucesso! Faça login.")
+            return redirect("/")
 
+        # Se houver erros, mostra a mesma página com mensagens
+        messages.error(request, "Corrija os erros abaixo.")
+        return render(request, "pages/create-account.html", {"form": form})
+```
 
+Agora vamos explicar o código acima bloco a bloco:
 
+**🧩 1. Imports**
+```python
+from django.contrib import messages
+from django.shortcuts import redirect, render
+from users.forms import CustomUserCreationForm
+```
 
+ - **messages:**
+   - Sistema do Django para mostrar mensagens temporárias (feedback ao usuário).
+ - **redirect:**
+   - Redireciona o usuário para outra página.
+ - **render:**
+   - Exibe um template HTML com dados.
+ - **CustomUserCreationForm:**
+   - Formulário customizado criado em `users/forms.py`
 
+**🧩 2. GET — Exibe o formulário**
+```python
+if request.method == "GET":
+    form = CustomUserCreationForm()
+    return render(request, "pages/create-account.html", {"form": form})
+```
 
+ - `if request.method == "GET":`
+   - Verifica se o método é *GET (ou seja, o usuário apenas abriu a página)*.
+ - `form = CustomUserCreationForm()`
+   - Aqui nós estamos criando uma *instância* do nosso formulário customizado (CustomUserCreationForm).
+   - Esse objeto tem todos os metadados necessários:
+     - Quais campos devem aparecer (username, email, password1, password2);
+     - Como renderizar cada campo (por exemplo: input type="text", input type="password", etc.);
+     - Como validar os dados depois que o usuário preencher.
+     - **NOTE:** Por fim, vejam que nós não passamos nenhum valor para o objeto CustomUserCreationForm().
+ - `return render(request, "pages/create-account.html", {"form": form})`
+   - O `form` é enviado ao template (dentro de um dicionário).
+   - `O terceiro argumento de render() é o contexto:`
+     - Um dicionário com variáveis que o *template (HTML)* pode usar.
+     - Nesse caso, o Django envia a variável `form` para o template.
+     - Dentro do HTML, você pode acessá-la assim:
+       - `{{ form.username }}`
+       - `{{ form.email }}`
+       - `{{ form.password1 }}`
+       - `{{ form.password2 }}`
+   - **NOTE:** Essas expressões podem ser utilizadas para gerar automaticamente os elementos `<input>` do formulário com o HTML correto.
 
+**🧩 3. POST — Processa o envio**
+```python
+elif request.method == "POST":
+    form = CustomUserCreationForm(request.POST)
+```
 
+ - `elif request.method == "POST":`
+   - Verifica se o método é *POST (ou seja, o usuário enviou o formulário)*.
+ - `form = CustomUserCreationForm(request.POST)`
+   - Aqui nós estamos criando uma *instância* do nosso formulário customizado (CustomUserCreationForm).
+   - Porém, agora nós estamos passando como argumento `request.POST`, ou seja, os dados que o usuário enviou.
 
+**🧩 4. Verifica validade e salva**
+```python
+if form.is_valid():
+    form.save()
+    messages.success(request, "Conta criada com sucesso! Faça login.")
+    return redirect("/")
+```
+
+ - `if form.is_valid():`
+   - Verifica se o formulário (form) é válido:
+     - Se os campos obrigatórios foram preenchidos;
+     - Se as senhas coincidem;
+     - Se o usuário e o e-mail não existem ainda.
+ - `form.save()`
+   - Cria automaticamente um novo usuário no banco de dados.
+   - O Django já trata de:
+     - Fazer o hash da senha (não salva senha em texto puro);
+     - Popular os campos corretos da tabela `auth_user`.
+ - `messages.success(request, "Conta criada com sucesso! Faça login.")`
+   - Adiciona uma mensagem de sucesso à sessão.
+   - Essa mensagem pode ser exibida no template com `{% if messages %}`.
+ - `return redirect("/")`
+   - Redireciona o usuário para a página inicial (login).
+
+**🧩 5. Erros de validação**
+```python
+messages.error(request, "Corrija os erros abaixo.")
+return render(request, "pages/create-account.html", {"form": form})
+```
+
+ - Se o formulário tiver erros, o código não redireciona.
+ - Mostra o mesmo template novamente, mas com o `form` já contendo:
+   - Os dados digitados pelo usuário.
+   - As mensagens de erro (`{{ form.errors }}`).`
+ - **NOTE:** Assim, o usuário vê o que digitou e pode corrigir os erros sem perder tudo.
+
+> **E o formulário de cadastro?**
+
+Bem, aqui nós vamos criar um formulários (HTML) dinâmicos usando os dados enviados pelo usuário:
+
+```python
+form = CustomUserCreationForm(request.POST)
+return render(request, "pages/create-account.html", {"form": form})
+```
+
+O código completo é o seguinte:
+
+[users/templates/pages/create-account.html](../users/templates/pages/create-account.html)
+```html
+{% extends "base.html" %}
+
+{% block title %}Criar Conta — Easy RAG{% endblock %}
+
+{% block content %}
+
+    <h1>Criar Conta</h1>
+
+    {% if messages %}
+        <ul>
+            {% for msg in messages %}
+                <li>{{ msg }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="post" action="">
+        {% csrf_token %}
+
+        {{ form.non_field_errors }}
+
+        <div>
+            {{ form.username.label_tag }}
+            {{ form.username }}
+            {{ form.username.errors }}
+        </div>
+
+        <div>
+            {{ form.email.label_tag }}
+            {{ form.email }}
+            {{ form.email.errors }}
+        </div>
+
+        <div>
+            {{ form.password1.label_tag }}
+            {{ form.password1 }}
+            {{ form.password1.errors }}
+        </div>
+
+        <div>
+            {{ form.password2.label_tag }}
+            {{ form.password2 }}
+            {{ form.password2.errors }}
+        </div>
+
+        <div>
+            <button type="submit">Cadastrar</button>
+        </div>
+    </form>
+
+    <br>
+
+    <div>
+        <a href="/">Já tem uma conta? Fazer login</a>
+    </div>
+
+{% endblock %}
+```
+
+Agora vamos explicar as **principais partes** do código acima:
+
+```html
+{% if messages %}
+    <ul>
+        {% for msg in messages %}
+            <li>{{ msg }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+```
+
+ - Esse bloco exibe mensagens do Django (vindas do `messages` framework).
+ - Essas mensagens são criadas na view, por exemplo:
+   - `messages.success(request, "Conta criada com sucesso!")`
+
+```html
+<form method="post" action="">
+    {% csrf_token %}
+```
+
+ - Inicia o formulário HTML.
+ - `method="post"` → os dados do formulário serão enviados via POST (para o mesmo endpoint).
+ - `action=""` → Significa “enviar para a mesma página”.
+ - `{% csrf_token %}` → Gera um token oculto de segurança (CSRF = Cross-Site Request Forgery):
+   - Esse token impede que sites externos façam requisições maliciosas no seu sistema.
+   - É obrigatório em formulários POST no Django.
+
+```html
+{{ form.non_field_errors }}
+```
+
+ - Exibe erros gerais do formulário, que não pertencem a um campo específico.
+ - Exemplo: “As senhas não coincidem.”
+ - Esses erros são definidos internamente pelo `UserCreationForm` do Django.
+
+```html
+<div>
+    {{ form.username.label_tag }}
+    {{ form.username }}
+    {{ form.username.errors }}
+</div>
+```
+
+ - Renderiza (dinamicamente) o campo username do formulário, gerado automaticamente pelo Django:
+   - label_tag → cria a tag `<label>` (ex: “Username:”).
+   - form.username → gera o `<input>` correspondente (ex: `<input type="text" name="username">`).
+   - form.username.errors → exibe erros específicos desse campo (ex: “Este nome de usuário já existe.”).
+ - 💡 O Django gera todo o HTML desses elementos com base na definição da classe `CustomUserCreationForm` em [users/forms.py](../users/forms.py).
+
+```html
+<div>
+    {{ form.email.label_tag }}
+    {{ form.email }}
+    {{ form.email.errors }}
+</div>
+```
+
+ - Mesmo padrão do campo anterior, mas para o campo email.
+ - Esse campo foi adicionado manualmente no formulário personalizado *(CustomUserCreationForm)*.
+
+```html
+<div>
+    {{ form.password1.label_tag }}
+    {{ form.password1 }}
+    {{ form.password1.errors }}
+</div>
+
+<div>
+    {{ form.password2.label_tag }}
+    {{ form.password2 }}
+    {{ form.password2.errors }}
+</div>
+```
+
+ - Esses dois campos vêm do `UserCreationForm` padrão do Django.
+ - password1 é a senha principal.
+ - password2 é a confirmação da senha.
+ - **NOTE:** O próprio Django valida se as duas são iguais e mostra erros automaticamente caso não coincidam.
 
 ---
 

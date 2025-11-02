@@ -16,10 +16,8 @@
  - [`12 - Criando App users e um superusuario no Django Admin`](#app-users-more-django-admin)
  - [`13 - Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
  - [`14 - Configurando o Django para reconhecer o PostgreSQL como Banco de Dados`](#django-setting-db)
- - [`15 - Criando a página de cadastro (create-account.html)`](#create-account)
-
-
-
+ - [`15 - Criando a página de cadastro (create-account.html + DB Commands)`](#create-account)
+ - [`16 - Criando a sessão de login/logout + página home.html`](#session-home)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -935,27 +933,29 @@ Uma `landing page` pública geralmente contem:
 
 Vamos começar configurando a rota/url que vai ser nosso `/`:
 
-[core/urls.py](../core/urls.py)
+[users/urls.py](../users/urls.py)
 ```python
-from django.contrib import admin
-from django.urls import include, path
+from django.urls import path
 
-from .views import index
+from .views import login_view
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path(route="", view=index, name="index"),
+    path(route="", view=login_view, name="index"),
 ]
 ```
 
-Agora dentro do [core](../core) vamos criar uma view (ação) para essa `landing page`:
+ - Essa rota/url `/` vai ser tratada dentro do App `users` porque futuramente nós vamos criar condições para verificar se o usuário está logado ou não no sistema.
+ - Desta maneira, é interessante que essa rota/url `/` seja tratada dentro do App `users`.
 
-[core/views.py](../core/views.py)
+Continuando, agora vamos criar uma view (ação) para essa `landing page`:
+
+[users/views.py](../users/views.py)
 ```python
 from django.shortcuts import render
 
 
-def index(request):
+def login_view(request):
+    # GET → renderiza pages/index.html (form de login)
     if request.method == "GET":
         return render(request, "pages/index.html")
 ```
@@ -1159,12 +1159,6 @@ Agora é só criar o Django Admin e verificar se temos a tabela `users`:
 
 
 
-
-
-
-
-
-
 ---
 
 <div id="psycopg2-binary"></div>
@@ -1195,9 +1189,6 @@ INSERT INTO auth_user (username) VALUES ('drigols');
 ```
 
 Mas pra enviar isso ao PostgreSQL, ele precisa de uma biblioteca cliente — e é aí que entra o psycopg2.
-
-
-
 
 
 
@@ -1465,35 +1456,11 @@ Running migrations:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ---
 
 <div id="create-account"></div>
 
-## `15 - Criando a página de cadastro (create-account.html)`
+## `15 - Criando a página de cadastro (create-account.html + DB Commands)`
 
 > Aqui nós vamos criar e configurar a nossa `página de cadastro`.
 
@@ -1606,7 +1573,7 @@ def create_account(request):
         return render(request, "pages/create-account.html", {"form": form})
 ```
 
-Agora vamos explicar o código acima bloco a bloco:
+Agora vamos explicar as partes mais importantes do código acima:
 
 **🧩 1. Imports**
 ```python
@@ -1709,7 +1676,7 @@ form = CustomUserCreationForm(request.POST)
 return render(request, "pages/create-account.html", {"form": form})
 ```
 
-O código completo é o seguinte:
+O código completo para fazer isso é o seguinte:
 
 [users/templates/pages/create-account.html](../users/templates/pages/create-account.html)
 ```html
@@ -1774,6 +1741,7 @@ O código completo é o seguinte:
 
 Agora vamos explicar as **principais partes** do código acima:
 
+**🧩 1. Exibe as mensagens criadas na view**
 ```html
 {% if messages %}
     <ul>
@@ -1788,6 +1756,7 @@ Agora vamos explicar as **principais partes** do código acima:
  - Essas mensagens são criadas na view, por exemplo:
    - `messages.success(request, "Conta criada com sucesso!")`
 
+**🧩 2. Inicia o formulário**
 ```html
 <form method="post" action="">
     {% csrf_token %}
@@ -1800,6 +1769,7 @@ Agora vamos explicar as **principais partes** do código acima:
    - Esse token impede que sites externos façam requisições maliciosas no seu sistema.
    - É obrigatório em formulários POST no Django.
 
+**🧩 3. Exibe erros gerais do formulário**
 ```html
 {{ form.non_field_errors }}
 ```
@@ -1808,6 +1778,7 @@ Agora vamos explicar as **principais partes** do código acima:
  - Exemplo: “As senhas não coincidem.”
  - Esses erros são definidos internamente pelo `UserCreationForm` do Django.
 
+**🧩 4. Renderiza o campo username dinamicamente**
 ```html
 <div>
     {{ form.username.label_tag }}
@@ -1822,6 +1793,7 @@ Agora vamos explicar as **principais partes** do código acima:
    - form.username.errors → exibe erros específicos desse campo (ex: “Este nome de usuário já existe.”).
  - 💡 O Django gera todo o HTML desses elementos com base na definição da classe `CustomUserCreationForm` em [users/forms.py](../users/forms.py).
 
+**🧩 5. Renderiza o campo email dinamicamente**
 ```html
 <div>
     {{ form.email.label_tag }}
@@ -1833,6 +1805,7 @@ Agora vamos explicar as **principais partes** do código acima:
  - Mesmo padrão do campo anterior, mas para o campo email.
  - Esse campo foi adicionado manualmente no formulário personalizado *(CustomUserCreationForm)*.
 
+**🧩 6. Renderiza os campos de senha dinamicamente**
 ```html
 <div>
     {{ form.password1.label_tag }}
@@ -1851,6 +1824,419 @@ Agora vamos explicar as **principais partes** do código acima:
  - password1 é a senha principal.
  - password2 é a confirmação da senha.
  - **NOTE:** O próprio Django valida se as duas são iguais e mostra erros automaticamente caso não coincidam.
+
+> **Por fim, como eu sei que os usuários estão sendo gravados no Banco de Dados?**
+
+Primeiro, vamos abrir o container que tem PostgreSQL:
+
+```bash
+task opendb
+```
+
+Agora vamos listar as tabelas:
+
+```bash
+\dt+
+```
+
+**OUTPUT:**
+```bash
+                                               List of relations
+ Schema |            Name            | Type  |  Owner  | Persistence | Access method |    Size    | Description
+--------+----------------------------+-------+---------+-------------+---------------+------------+-------------
+ public | auth_group                 | table | easyrag | permanent   | heap          | 0 bytes    |
+ public | auth_group_permissions     | table | easyrag | permanent   | heap          | 0 bytes    |
+ public | auth_permission            | table | easyrag | permanent   | heap          | 8192 bytes |
+ public | auth_user                  | table | easyrag | permanent   | heap          | 16 kB      |
+ public | auth_user_groups           | table | easyrag | permanent   | heap          | 0 bytes    |
+ public | auth_user_user_permissions | table | easyrag | permanent   | heap          | 0 bytes    |
+ public | django_admin_log           | table | easyrag | permanent   | heap          | 8192 bytes |
+ public | django_content_type        | table | easyrag | permanent   | heap          | 8192 bytes |
+ public | django_migrations          | table | easyrag | permanent   | heap          | 16 kB      |
+ public | django_session             | table | easyrag | permanent   | heap          | 16 kB      |
+```
+
+Agora, vamos listas as colunas da tabela `auth_user`:
+
+```bash
+\d auth_user
+```
+
+**OUTPUT:**
+```bash
+                                     Table "public.auth_user"
+    Column    |           Type           | Collation | Nullable |             Default
+--------------+--------------------------+-----------+----------+----------------------------------
+ id           | integer                  |           | not null | generated by default as identity
+ password     | character varying(128)   |           | not null |
+ last_login   | timestamp with time zone |           |          |
+ is_superuser | boolean                  |           | not null |
+ username     | character varying(150)   |           | not null |
+ first_name   | character varying(150)   |           | not null |
+ last_name    | character varying(150)   |           | not null |
+ email        | character varying(254)   |           | not null |
+ is_staff     | boolean                  |           | not null |
+ is_active    | boolean                  |           | not null |
+ date_joined  | timestamp with time zone |           | not null |
+Indexes:
+    "auth_user_pkey" PRIMARY KEY, btree (id)
+    "auth_user_username_6821ab7c_like" btree (username varchar_pattern_ops)
+    "auth_user_username_key" UNIQUE CONSTRAINT, btree (username)
+Referenced by:
+    TABLE "auth_user_groups" CONSTRAINT "auth_user_groups_user_id_6a12ed8b_fk_auth_user_id" FOREIGN KEY (user_id) REFERENCES auth_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "auth_user_user_permissions" CONSTRAINT "auth_user_user_permissions_user_id_a95ead1b_fk_auth_user_id" FOREIGN KEY (user_id) REFERENCES auth_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "django_admin_log" CONSTRAINT "django_admin_log_user_id_c564eba6_fk_auth_user_id" FOREIGN KEY (user_id) REFERENCES auth_user(id) DEFERRABLE INITIALLY DEFERRED
+```
+
+Por fim, vamos listar todos os usuários (com suas colunas) já cadastrados no Banco de Dados:
+
+```bash
+select * from auth_user;
+```
+
+**OUTPUT:**
+```bash
+ id |                                         password                                          |          last_login           | is_superuser | username | first_name | last_name |           email            | is_staff | is_active |          date_joined
+----+-------------------------------------------------------------------------------------------+-------------------------------+--------------+----------+------------+-----------+----------------------------+----------+-----------+-------------------------------
+  2 | pbkdf2_sha256$1000000$Q77ZUEe8nNZFT3DLvOBMRf$pLgNiCmXRUEaX0XGmC+JX8jTrNqS5I6QMVuutC3ypTw= |                               | f            | rodrigo  |            |           | rodrigo.praxedes@gmail.com | f        | t         | 2025-10-21 10:30:23.466991+00
+  3 | pbkdf2_sha256$1000000$93BBiOAKodPLbmgJJtbfBY$HLYRqEN5oCfmZKsA0iGkbbG+KbITmlz26BDl2xRMGbs= | 2025-11-02 09:19:36.900889+00 | f            | romario  |            |           | romario@gmail.com          | f        | t         | 2025-10-28 00:52:23.111699+00
+  4 | pbkdf2_sha256$1000000$AW4kQwpGOjvxBWaCg5EMkC$+YnHIhK29DhI8PMJQyx3SIuOnCHGUJgvuuc0XNDrEKs= | 2025-11-02 09:36:10.701396+00 | f            | brenda   |            |           | brenda@gmail.com           | f        | t         | 2025-11-02 09:36:05.24123+00
+  1 | pbkdf2_sha256$1000000$TwwCgqC0kp0GRli3xEyzhO$5r01g9G+sbI99a9a6cvgky5XudMjI/ADg+t5wO+1tHw= | 2025-11-02 10:07:32.909962+00 | t            | drigols  |            |           | drigols.creative@gmail.com | t        | t         | 2025-10-21 09:01:46.482399+00
+(4 rows)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="session-home"></div>
+
+## `16 - Criando a sessão de login/logout + página home.html`
+
+> Aqui nós vamos criar todo mecanismo de `login` e `logout` de usuários.
+
+De início vamos começar configurando as rotas/urls em `users/urls.py`:
+
+[users/urls.py](../users/urls.py)
+```python
+from django.urls import path
+
+from .views import create_account, home_view, login_view, logout_view
+
+urlpatterns = [
+    path(route="", view=login_view, name="index"),
+    path(route="home/", view=home_view, name="home"),
+    path(route="logout/", view=logout_view, name="logout"),
+    path(route="create-account/", view=create_account, name="create-account"),
+]
+```
+
+> **NOTE:**  
+> Antes de criarmos as views (ações) para essas rotas/urls, vamos revisar as views (ações) que nós já tínhamos implementado.
+
+[users/views.py](../users/views.py)
+```python
+from django.contrib import messages
+from django.shortcuts import redirect, render
+
+from users.forms import CustomUserCreationForm
+
+
+def create_account(request):
+    # Caso 1: Requisição GET → apenas exibe o formulário vazio
+    if request.method == "GET":
+        form = CustomUserCreationForm()
+        return render(request, "pages/create-account.html", {"form": form})
+
+    # Caso 2: Requisição POST → processa o envio do formulário
+    elif request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+
+        # Se o formulário for válido, salva e redireciona
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Conta criada com sucesso! Faça login.")
+            return redirect("/")
+
+        # Se houver erros, mostra a mesma página com mensagens
+        messages.error(request, "Corrija os erros abaixo.")
+        return render(request, "pages/create-account.html", {"form": form})
+```
+
+Continuando na implementação das views (ações), vamos começar implementando a view (ação) `home_view`:
+
+[users/views.py](../users/views.py)
+```python
+# Redireciona para o login se não estiver autenticado
+@login_required(login_url="/")
+def home_view(request):
+    return render(request, "pages/home.html")
+```
+
+Agora vamos explicar as partes mais importantes do código acima:
+
+**🧩 1. Importações necessárias**
+```python
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+```
+
+ - `login_required`
+   - É um decorator que protege a view, garantindo que somente usuários autenticados possam acessá-la.
+   - Se o usuário não estiver logado, ele é automaticamente redirecionado para a página de login (definida no parâmetro login_url).
+ - `render`
+   - Função do Django que combina um template HTML (`home.html`) com dados do contexto (caso existam) e retorna uma resposta HTTP para o navegador.
+   - É a forma mais comum de retornar páginas renderizadas em views Django.
+
+**🧩 2. Aplicação do decorator @login_required**
+```python
+# Redireciona para o login se não estiver autenticado
+@login_required(login_url="/")
+```
+
+ - **O que faz?**
+   - Essa linha é um decorator, ou seja, um "envoltório" que executa código antes da função `home_view`.
+   - Quando alguém tenta acessar `/home/`, o Django verifica:
+     - Se o usuário está autenticado, executa `home_view(request)` normalmente.
+     - Se não estiver autenticado, o Django interrompe a execução e redireciona automaticamente para `login_url="/"`.
+ - **Por que precisamos?**
+   - Garante segurança — impede acesso não autorizado a páginas internas do sistema.
+   - Evita que um usuário acesse `/home/` apenas digitando a URL no navegador.
+ - **Observação:**
+   - O `login_url="/"` indica que a página de login é a raiz do site (`index.html`).
+
+Continuando na implementação das views (ações), vamos agora implementar a view (ação) `login_view`:
+
+[users/views.py](../users/views.py)
+```python
+def login_view(request):
+    # Se o usuário já estiver logado, envia direto pra home
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    # GET → renderiza pages/index.html (form de login)
+    if request.method == "GET":
+        return render(request, "pages/index.html")
+
+    # POST → processa credenciais
+    username = request.POST.get("username")
+    password = request.POST.get("password")
+    user = authenticate(request, username=username, password=password)
+
+    if user is not None:
+        login(request, user)
+        return redirect("home")
+    else:
+        messages.error(request, "Usuário ou senha inválidos.")
+        return render(request, "pages/index.html")
+```
+
+Agora vamos explicar as partes mais importantes do código acima:
+
+**🧩 1. Checagem se já está autenticado**
+```python
+if request.user.is_authenticated:
+    return redirect("home")
+```
+
+ - **O que faz?**  
+   - Verifica se a requisição já tem um usuário autenticado (Django fornece request.user).
+ - **Por que existe:**  
+   - Evita que usuários logados vejam a tela de login novamente — redireciona imediatamente para a página privada (`home`).
+ - **Observação:**
+   - `is_authenticated` é `True` quando a sessão contém um usuário válido (cookie de sessão presente e válido).
+
+**🧩 2. Tratamento do GET — mostrar o formulário de login**
+```python
+if request.method == "GET":
+    return render(request, "pages/index.html")
+```
+
+ - **O que faz?**
+   - Quando a página é acessada via `GET`, renderiza o template com o formulário de login.
+ - **Por que existe:**
+   - Separa o `fluxo de exibição do formulário (GET)` do `fluxo de processamento (POST)`.
+ - **Resultado:**
+   - O navegador recebe o HTML do `index.html` contendo os campos *"username"* e *"password"*.
+
+**🧩 3. Leitura dos dados do POST e autenticação**
+```python
+username = request.POST.get("username")
+password = request.POST.get("password")
+user = authenticate(request, username=username, password=password)
+```
+
+ - **O que faz?**
+   - Pega os valores enviados pelo formulário `(request.POST)` e chama `authenticate(...)`.
+   - **authenticate faz:**
+     - Verifica as credenciais contra o backend de autenticação (normalmente a tabela auth_user).
+     - Retorna um objeto User se as credenciais baterem, caso contrário None.
+ - **Por que:**
+   - Permite verificar identidade sem ainda criar sessão — apenas valida.
+
+**🧩 4. Login bem-sucedido → criar sessão e redirecionar**
+```python
+if user is not None:
+    login(request, user)
+    return redirect("home")
+```
+
+ - **O que faz?**
+   - `login(request, user)`
+     - Cria a sessão do usuário (Django grava na sessão o ID do usuário e configura o cookie de sessão).
+   - `redirect("home")`
+     - Envia o usuário à página protegida.
+     - **Por que?** Estabelecimento da sessão é o passo que efetivamente **“loga”** o usuário no site; após isso, `request.user` será o usuário autenticado em requisições seguintes.
+
+**🧩 5. Falha na autenticação → feedback e reexibir o formulário**`
+```python
+else:
+    messages.error(request, "Usuário ou senha inválidos.")
+    return render(request, "pages/index.html")
+```
+
+ - **O que faz?**
+   - Adiciona uma mensagem de erro (usando o framework `messages`) e renderiza novamente a página de login (`index.html`).
+ - **Por que:**
+   - Informar o usuário que as credenciais estavam incorretas e permitir uma nova tentativa, preservando a UX.
+ - **Observação de segurança:**
+   - Não dá detalhe sobre qual campo falhou **(boa prática para evitar user-enumeration)**.
+
+Por fim, o nosso usuário precisa também deslogar do sistema e para isso vamos criar a view (ação) `logout_view`:
+
+[users/views.py](../users/views.py)
+```pydef logout_view(request):
+    logout(request)
+    return redirect("/")
+```
+
+Agora vamos explicar as partes mais importantes do código acima:
+
+**🧩 1. Encerramento da sessão do usuário**
+```python
+logout(request)
+```
+
+ - **O que faz?**
+   - Chama a função `logout()` do Django, que remove o usuário autenticado da sessão.
+   - Isso significa que:
+     - O cookie de autenticação é apagado.
+     - `request.user` deixa de ser o usuário logado e passa a ser `AnonymousUser`.
+   - A sessão no banco de dados (ou no cache, dependendo da configuração) é destruída.
+ - **Por que existe?**
+   - Garante que o usuário saia com segurança do sistema, protegendo o acesso à conta em dispositivos compartilhados.
+ - **Importante:**
+   - Essa função não precisa de parâmetros extras — o Django automaticamente identifica e limpa a sessão ativa a partir do request.
+
+**🧩 2. Redirecionamento após logout**
+```python
+return redirect("/")
+```
+
+ - **O que faz?**
+   - Redireciona o usuário de volta para a página de login (raiz `/`).
+ - **Por que existe?**
+   - Depois que o usuário sai, não faz sentido mantê-lo em uma página protegida (`home`, por exemplo);
+   - Enviar de volta para `/ (login)` é o comportamento padrão e esperado após logout.
+ - **Resultado final:**
+   - Sessão encerrada;
+   - Usuário anônimo;
+   - Redirecionamento automático para a tela de login.
+
+> **Ótimo, o que falta agora?**  
+> Implementar o template `users/templates/pages/home.html` (página de boas-vindas);
+
+[users/templates/pages/home.html](../users/templates/pages/home.html)
+```html
+{% extends "base.html" %}
+
+{% block title %}Home — Easy RAG{% endblock %}
+
+{% block content %}
+    <h1>Bem-vindo, {{ request.user.username }}!</h1>
+    <p>Você está logado com sucesso.</p>
+
+    <a href="{% url 'logout' %}">Sair</a>
+{% endblock %}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ---
 

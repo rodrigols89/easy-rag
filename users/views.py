@@ -19,7 +19,6 @@ def create_account(request):
         # Se o formulário for válido, salva e redireciona
         if form.is_valid():
             form.save()
-            messages.success(request, "Conta criada com sucesso! Faça login.")
             return redirect("/")
 
         # Se houver erros, mostra a mesma página com mensagens

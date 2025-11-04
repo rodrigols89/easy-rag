@@ -18,6 +18,7 @@
  - [`14 - Configurando o Django para reconhecer o PostgreSQL como Banco de Dados`](#django-setting-db)
  - [`15 - Criando a página de cadastro (create-account.html + DB Commands)`](#create-account)
  - [`16 - Criando a sessão de login/logout + página home.html`](#session-home)
+ - [`17 - Criando o login com Google e GitHub`](#login-google-github)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -2220,6 +2221,417 @@ return redirect("/")
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="login-google-github"></div>
+
+## `17 - Criando o login com Google e GitHub`
+
+#### 17.1 Instalando e Configurando a biblioteca django-allauth
+
+> Aqui nós vamos instalar e configurar o `django-allauth`, que é uma biblioteca pronta para adicionar *autenticação social (OAuth)* e *funcionalidades de conta (login, logout, registro, verificação de e-mail)* ao seu projeto Django.
+
+Vamos começar instalando as dependências e a biblioteca `django-allauth`:
+
+**Dependências para o "django-allauth" funcionar corretamente:**
+```bash
+poetry add PyJWT@latest
+```
+
+```bash
+poetry add cryptography@latest
+```
+
+**Instalando o "django-allauth":**
+```bash
+poetry add django-allauth@latest
+```
+
+Agora vamos adicionar o `django-allauth` aos apps do projeto:
+
+[core/settings.py](../core/settings.py)
+```python
+INSTALLED_APPS = [
+    # Apps padrão do Django
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+
+    # Obrigatório pro allauth
+    "django.contrib.sites",
+
+    # Apps principais do allauth
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+
+    # Provedores de login social
+    "allauth.socialaccount.providers.google",  # 👈 habilita login com Google
+    "allauth.socialaccount.providers.github",  # 👈 habilita login com GitHub
+
+    # Seus apps
+    "users",
+]
+```
+
+ - `django.contrib.sites`
+   - App do Django que permite associar configurações a um Site (domínio) — o allauth usa isso para saber qual domínio/URL usar para callbacks OAuth.
+   - Você precisará criar/ajustar um Site no admin (ou via fixtures) com SITE_ID = 1 (ver mais abaixo).
+ - `allauth, allauth.account, allauth.socialaccount`
+   - `allauth` é o pacote principal;
+   - `account` fornece funcionalidade de conta (registro, login local, confirmação de e-mail);
+   - `socialaccount` é a camada que integra provedores OAuth (Google, GitHub, etc.).
+ - `allauth.socialaccount.providers.google, allauth.socialaccount.providers.github`
+   - Provedores prontos do allauth — carregam os adaptadores e rotas específicas para cada provedor.
+   - Adicione apenas os provedores que você pretende suportar (pode ativar mais tarde).
+
+Agora nós vamos adicionar `context_processors.request` e configurar `AUTHENTICATION_BACKENDS` (`settings.py`):
+
+[core/settings.py](../core/settings.py)
+```python
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',  # <- Necessário para allauth
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.template.context_processors.tz',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+
+# AUTHENTICATION_BACKENDS — combine o backend padrão com o do allauth
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",            # Seu login normal
+    "allauth.account.auth_backends.AuthenticationBackend",  # Login social
+]
+```
+
+Outras configurações importantes no `settings.py` são as seguintes:
+
+[core/settings.py](../core/settings.py)
+```python
+SITE_ID = 1
+
+LOGIN_REDIRECT_URL = "/home/"  # ou o nome da rota que preferir
+LOGOUT_REDIRECT_URL = "/"      # para onde o usuário vai depois do logout
+
+# Permitir login apenas com username (pode ser {'username', 'email'} se quiser os dois)
+ACCOUNT_LOGIN_METHODS = {"username"}
+
+# Campos obrigatórios no cadastro (asterisco * indica que o campo é requerido)
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "optional"     # "mandatory" em produção
+```
+
+ - `SITE_ID = 1`
+   - Diz ao Django qual registro na tabela django_site representa este site. Allauth usa essa associação para Social Applications (cada SocialApplication é vinculado a um Site).
+   - No admin, você provavelmente terá que criar/editar o Site com id=1 para corresponder a localhost:8000 (em dev) ou o domínio real em produção.
+ - `LOGIN_REDIRECT_URL, LOGOUT_REDIRECT_URL`
+   - Define para onde o usuário é enviado após login/logout. Ajuste conforme sua rota home.
+ - `ACCOUNT_LOGIN_METHODS`
+   - Define quais métodos de login o allauth deve aceitar.
+   - Ele usa um set `{}` porque você pode permitir mais de um método:
+     - `ACCOUNT_LOGIN_METHODS = {"username"}           # só com username`
+     - `ACCOUNT_LOGIN_METHODS = {"email"}              # só com email`
+     - `ACCOUNT_LOGIN_METHODS = {"username", "email"}  # permite ambos`
+ - `ACCOUNT_SIGNUP_FIELDS`
+   - Lista os campos exibidos e obrigatórios no cadastro.
+   - O asterisco `*` significa “campo obrigatório”:
+     - `["email*", "username*", "password1*", "password2*"]`
+     - **NOTE:** Assim, se o usuário tentar se cadastrar sem um desses campos, o allauth exibirá automaticamente os erros de validação.
+
+Agora depois de tudo configurado, nós devemos:
+
+ - `python manage.py migrate`
+   - Aplica tabelas necessárias (inclui *django_site*, *socialaccount models*, etc.).
+ - `Rode o servidor:`
+   - `python manage.py runserver`
+   - Acesse o admin → http://localhost:8000/admin/
+   - Vá em Sites → clique em Sites → edite o existente (id=1):
+     - Domain name: localhost:8000
+     - Display name: Easy RAG
+
+Agora que o `django-allauth` está instalado e registrado no `settings.py`, precisamos conectar suas rotas (URLs) ao projeto principal.
+
+Essas rotas incluem:
+
+ - /accounts/login/ (Não é o nosso caso, pois já implementamos)
+ - /accounts/logout/ (Não é o nosso caso, pois já implementamos)
+ - /accounts/signup/ (Não é o nosso caso, pois já implementamos - cadastro)
+ - /accounts/google/login/
+ - /accounts/github/login/,... etc.
+
+E também vamos garantir que o **SITE_ID** e o **modelo Site** estejam corretamente configurados para o domínio do projeto (como localhost:8000 no ambiente de desenvolvimento).
+
+No seu arquivo `core/urls.py`, adicione a seguinte linha:
+
+[core/urls.py](../core/urls.py)
+```python
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("", include("users.urls")),
+    # Rotas do django-allauth
+    path("accounts/", include("allauth.urls")),
+]
+```
+
+ - `path("accounts/", include("allauth.urls"))`
+   - Importa e registra automaticamente todas as rotas padrão do `django-allauth`.
+   - Isso adiciona páginas como:
+     - `/accounts/login/` → página de login.
+     - `/accounts/signup/` → página de cadastro.
+     - `/accounts/logout/` → logout.
+     - `/accounts/google/login/` → login social com Google.
+     - `/accounts/github/login/` → login social com GitHub.
+
+Com o servidor Django rodando acesse (só para testes):
+
+ - http://localhost:8000/accounts/login/
+ - http://localhost:8000/accounts/signup/
+ - http://localhost:8000/accounts/google/login/
+ - http://localhost:8000/accounts/github/login/
+
+ - **🧩 1.**
+   - Essas rotas são criadas automaticamente pelo allauth.
+   - Você ainda não configurou as credenciais (client ID e secret) dos provedores, então clicar nelas ainda não vai funcionar — isso é normal neste ponto.
+ - **🧩 2.**
+   - Esse teste serve apenas para confirmar que as rotas foram registradas corretamente e o `django-allauth` está funcionando.
+
+**NOTE:**  
+O `django-allauth` usa seus próprios templates internos, mas você pode sobrescrevê-los criando uma pasta como:
+
+```
+templates/account/login.html
+templates/account/signup.html
+```
+
+#### 17.2 Configuração do Google OAuth (login social)
+
+ - Agora que o django-allauth já está instalado e com as rotas funcionando, nós vamos integrar o login social usando o Google e o GitHub.
+ - Essas integrações permitirão que o usuário acesse seu sistema sem criar uma conta manualmente, apenas autenticando-se com uma dessas plataformas.
+
+ - **Etapas no Console do Google:**
+   - Acesse https://console.cloud.google.com/
+   - Faça login e crie um novo projeto (ex: Easy RAG Auth).
+   - No menu lateral, vá em:
+     - APIs e serviços → Credenciais → Criar credenciais → ID do cliente OAuth 2.0
+   - Clique no botão “Configure consent screen”
+     - Clique em `Get started`
+     - **Em App Information:**
+       - `App name:`
+         - Easy RAG
+         - Esse nome aparecerá para o usuário quando ele for fazer login pelo Google.
+       - `User support email:`
+         - Selecione seu e-mail pessoal (ele aparece automaticamente no menu).
+         - É usado pelo Google caso o usuário queira contato sobre privacidade.
+       - Cli quem `next`
+     - **Em Audience:**
+       - Aqui o Google vai perguntar quem pode usar o aplicativo.
+       - ✅ External (Externo):
+         - Isso significa que qualquer usuário com uma conta Google poderá fazer login (ótimo para ambiente de testes e produção pública).
+     - **Contact Information:**
+       - O campo será algo como:
+         - Developer contact email:
+           - Digite novamente o mesmo e-mail (ex: seuemail@gmail.com)
+         - Esse é o contato para eventuais notificações do Google sobre a aplicação.
+     - **Finish:**
+       - Revise as informações e clique em Create (botão azul no canto inferior esquerdo).
+       - Isso cria oficialmente a tela de consentimento OAuth.
+
+**✅ Depois que criar**
+
+Você será redirecionado automaticamente para o painel de `OAuth consent screen`. De lá, basta voltar:
+
+ - Ao menu lateral → APIs & Services → Credentials;
+ - e aí sim o botão `+ Create credentials` → `OAuth client ID` ficará habilitado.
+
+Agora escolha:
+
+ - **Tipo de aplicativo:**
+   - Aplicativo da Web
+ - **Nome:**
+   - Easy RAG - Django
+ - **Em URIs autorizados de redirecionamento, adicione:**
+   - http://localhost:8000/accounts/google/login/callback/
+ - **Clique em Criar**
+ - Copie o `Client ID` e o `Client Secret`
+
+> **NOTE:**  
+> Essas *informações (Client ID e Secret)* serão configuradas no admin do Django, não diretamente no código.
+
+#### 17.3 Configuração do GitHub OAuth (login social)
+
+ - Vá em https://github.com/settings/developers
+ - Clique em OAuth Apps → New OAuth App
+ - Preencha:
+   - *Application name:* Easy RAG
+   - *Homepage URL:* http://localhost:8000
+   - *Authorization callback URL:* http://localhost:8000/accounts/github/login/callback/
+ - Clique em `Register Application`
+ - Copie o `Client ID`
+ - Clique em `Generate new client secret` e copie o `Client Secret`
+
+#### 17.4 Registrando os provedores no Django Admin
+
+ - 1️⃣ Acesse: http://localhost:8000/admin/
+ - 2️⃣ Vá em: Social Accounts → Social Applications → Add Social Application
+ - 3️⃣ Crie o do Google:
+   - Provider: Google
+   - Name: Google Login
+   - Client ID: (cole o do Google)
+   - Secret Key: (cole o secret)
+   - Por fim, vá em `Sites`:
+     - *"Available sites"*
+     - *"Choose sites by selecting them and then select the "Choose" arrow button"*
+       - Adicione (Se não tiver): localhost:8000
+       - Selecione localhost:8000 e aperta na seta `->`
+ - 4️⃣ Repita o processo para o GitHub:
+   - Provider: GitHub
+   - Name: GitHub Login
+   - Client ID: (cole o do GitHub)
+   - Secret Key: (cole o secret)
+   - Por fim, vá em `Sites`:
+     - *"Available sites"*
+     - *"Choose sites by selecting them and then select the "Choose" arrow button"*
+       - Adicione (Se não tiver): localhost:8000
+       - Selecione localhost:8000 e aperta na seta `->`
+
+#### 17.5 Testando os logins sociais (Google e GitHub)
+
+Uma maneira de testar os logins sociais é abrindo a rota/url:
+
+ - http://localhost:8000/accounts/login/
+
+> **NOTE:**  
+> Se aparecer os botões de `Google` e `GitHub` para login é porque tudo está configurado corretamente.
+
+#### 17.6 Customizando os botões do Google e GitHub no template `index.html`
+
+ - Até aqui, você configurou o `django-allauth` e registrou os provedores (Google e GitHub) no painel administrativo.
+ - Agora, vamos fazer com que os botões **“Entrar com Google”** e **“Entrar com GitHub”** funcionem de verdade, conectando o *front-end* com o *allauth*.
+
+[templates/pages/index.html](../templates/pages/index.html)
+```html
+{% extends "base.html" %}
+{% load socialaccount %}
+
+{% block title %}Easy RAG{% endblock %}
+
+{% block content %}
+    <h1>Easy RAG</h1>
+
+    <!-- Formulário de login básico -->
+    <form method="post" action="">
+        {% csrf_token %}
+        <div>
+            <label for="username">Username</label><br>
+            <input type="text" id="username" name="username" autocomplete="username" required>
+        </div>
+
+        <div>
+            <label for="password">Password</label><br>
+            <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+
+        <div>
+            <button type="submit">Entrar</button>
+        </div>
+    </form>
+
+    <br>
+
+    <!-- Botões de login social reais -->
+    <div>
+        <a href="{% provider_login_url 'google' %}">
+            <button type="button">Entrar com Google</button>
+        </a>
+        <a href="{% provider_login_url 'github' %}">
+            <button type="button">Entrar com GitHub</button>
+        </a>
+    </div>
+
+    <br>
+
+    <div>
+        <a href="{% url 'create-account' %}">Cadastrar</a>
+    </div>
+{% endblock %}
+```
+
+Agora vamos explicar as partes mais importantes do código acima:
+
+**🧩 1. Herança do template e carregamento de tags**
+```html
+{% extends "base.html" %}
+{% load socialaccount %}
+```
+
+ - `{% extends "base.html" %}`
+   - Indica que este template herda a estrutura geral de `base.html (cabeçalho, <html>, <body>, etc.)`.
+ - `{% load socialaccount %}`
+   - Importa as template tags fornecidas pelo `django-allauth (ex.: {% provider_login_url %})`.
+   - Sem esse `load`, as tags sociais nao seriam reconhecidas pelo template engine.
+
+**🧩 2. Botões de login social (links gerados pelo allauth)**
+```html
+<div>
+    <a href="{% provider_login_url 'google' %}">
+        <button type="button">Entrar com Google</button>
+    </a>
+    <a href="{% provider_login_url 'github' %}">
+        <button type="button">Entrar com GitHub</button>
+    </a>
+</div>
+```
+
+ - **O que faz?**
+   - `{% provider_login_url 'google' %}` e `{% provider_login_url 'github' %}`
+     - Geram as URLs corretas para iniciar o fluxo `OAuth` com *Google* e *GitHub* (fornecidas pelo django-allauth).
+     - Os `<a>` envolvem botões visuais que, ao clicar, redirecionam o usuário para o provedor externo.
+ - **Por que é importante?**
+   - Conecta o front-end ao sistema de login social do allauth.
+   - O allauth cuida de gerar a URL correta, adicionar parâmetros e tratar callbacks.
+ - **Observações práticas:**
+   - Antes de usar essas tags, você precisa ter:
+     - Registrado os provedores em `INSTALLED_APPS` (ex.: allauth.socialaccount.providers.google e ...github).
+     - Criado os SocialApplication no Admin com Client ID/Secret e associado ao Site correto.
+   - Se algum desses estiver faltando, o template pode lançar erros (DoesNotExist) ao renderizar a tag.
 
 
 

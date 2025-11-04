@@ -17,17 +17,31 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
-# Application definition
-
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'users',
+    # apps padrão do Django
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+
+    # obrigatório pro allauth
+    "django.contrib.sites",
+
+    # apps principais do allauth
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+
+    # provedores de login social
+    "allauth.socialaccount.providers.google",  # 👈 habilita login com Google
+    "allauth.socialaccount.providers.github",  # 👈 habilita login com GitHub
+
+    # seus apps
+    "users",
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -35,6 +49,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -48,13 +63,25 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.request',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',  # << necessário para allauth
                 'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
     },
 ]
+
+
+# AUTHENTICATION_BACKENDS — combine o backend padrão com o do allauth
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",            # Seu login normal
+    "allauth.account.auth_backends.AuthenticationBackend",  # Login social
+]
+
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
@@ -107,3 +134,15 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+SITE_ID = 3
+
+LOGIN_REDIRECT_URL = "/home/"  # ou o nome da rota que preferir
+LOGOUT_REDIRECT_URL = "/"      # para onde o usuário vai depois do logout
+
+# Permitir login apenas com username (pode ser {'username', 'email'} se quiser os dois)
+ACCOUNT_LOGIN_METHODS = {"username"}
+
+# Campos obrigatórios no cadastro (asterisco * indica que o campo é requerido)
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "optional"     # "mandatory" em produção

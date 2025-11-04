@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 
     # seus apps
     "users",
+    "documents",
 ]
 
 

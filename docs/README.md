@@ -19,6 +19,7 @@
  - [`15 - Criando a página de cadastro (create-account.html + DB Commands)`](#create-account)
  - [`16 - Criando a sessão de login/logout + página home.html`](#session-home)
  - [`17 - Criando o login com Google e GitHub`](#login-google-github)
+ - [`18 - Criando e configurando o App documents`](#app-documents)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -2635,6 +2636,69 @@ Agora vamos explicar as partes mais importantes do código acima:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="app-documents"></div>
+
+## `18 - Criando e configurando o App documents`
+
+> Aqui nós vamos criar o App `documents` que vai ser responsável por armazenar os dados enviados pelos usuários no Banco de Dados.
+
+```bash
+python manage.py startapp documents
+```
+
+[core/settings.py](../core/settings.py)
+```python
+INSTALLED_APPS = [
+
+  ...
+
+    # seus apps
+    "users",
+    "documents",
+]
+```
 
 
 

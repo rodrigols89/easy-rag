@@ -20,6 +20,7 @@
  - [`16 - Criando a sessão de login/logout + página home.html`](#session-home)
  - [`17 - Criando o login com Google e GitHub`](#login-google-github)
  - [`18 - Criando e configurando o App documents`](#app-documents)
+ - [`19 - Implementando os models do App documents`](#documents-models)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -1575,7 +1576,7 @@ def create_account(request):
         return render(request, "pages/create-account.html", {"form": form})
 ```
 
-Agora vamos explicar as partes mais importantes do código acima:
+**Explicação das principais partes do código:**
 
 **🧩 1. Imports**
 ```python
@@ -1741,7 +1742,7 @@ O código completo para fazer isso é o seguinte:
 {% endblock %}
 ```
 
-Agora vamos explicar as **principais partes** do código acima:
+**Explicação das principais partes do código:**
 
 **🧩 1. Exibe as mensagens criadas na view**
 ```html
@@ -2014,7 +2015,7 @@ def home_view(request):
     return render(request, "pages/home.html")
 ```
 
-Agora vamos explicar as partes mais importantes do código acima:
+**Explicação das principais partes do código:**
 
 **🧩 1. Importações necessárias**
 ```python
@@ -2072,7 +2073,7 @@ def login_view(request):
         return render(request, "pages/index.html")
 ```
 
-Agora vamos explicar as partes mais importantes do código acima:
+**Explicação das principais partes do código:**
 
 **🧩 1. Checagem se já está autenticado**
 ```python
@@ -2151,7 +2152,7 @@ Por fim, o nosso usuário precisa também deslogar do sistema e para isso vamos 
     return redirect("/")
 ```
 
-Agora vamos explicar as partes mais importantes do código acima:
+**Explicação das principais partes do código:**
 
 **🧩 1. Encerramento da sessão do usuário**
 ```python
@@ -2595,7 +2596,7 @@ Uma maneira de testar os logins sociais é abrindo a rota/url:
 {% endblock %}
 ```
 
-Agora vamos explicar as partes mais importantes do código acima:
+**Explicação das principais partes do código:**
 
 **🧩 1. Herança do template e carregamento de tags**
 ```html
@@ -2711,6 +2712,202 @@ INSTALLED_APPS = [
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="documents-models"></div>
+
+## `19 - Implementando os models do App documents`
+
+> **Um model é a representação, no banco de dados, de um tipo de dado do seu sistema.**
+
+No nosso caso, queremos armazenar arquivos enviados pelos usuários, por isso o model File (ou Document) terá:
+
+ - Uma ligação com o usuário dono (user);
+ - O próprio arquivo (file);
+ - A data de upload (uploaded_at).
+
+Além disso, adicionaremos **validações automáticas** para restringir o tipo de arquivo e o tamanho máximo (50MB).
+
+ - **📎 Upload direto aqui no chat:**
+   - *Tamanho máximo:* 50 MB por arquivo;
+   - O usuário vai poder enviar vários arquivos, desde que cada um tenha até 50 MB;
+   - *Tipos aceitos:* textos (.txt, .pdf, .docx, .md).
+
+Vamos começar implementando uma validação se o arquivo enviado tem um tamanho maior do que 50MB:
+
+[documents/models.py](../documents/models.py)
+```python
+from django.core.exceptions import ValidationError
+
+
+def validate_file_size(value):
+    max_size = 50 * 1024 * 1024  # 50 megabytes
+    if value.size > max_size:
+        raise ValidationError(
+            "O arquivo excede o tamanho máximo permitido de 50MB."
+        )
+```
+
+**Explicação das principais partes do código:**
+
+ - `max_size = 50 * 1024 * 1024`
+   - Aqui definimos a constante `max_size` em bytes.
+   - A expressão `50 * 1024 * 1024` converte 50 megabytes para bytes (1 MB = 1024 * 1024 bytes).
+ - `if value.size > max_size:`
+   - Este bloco testa se o *tamanho do arquivo (value.size)* é maior que *max_size*:
+     - *value.size* normalmente retorna o tamanho do arquivo em bytes.
+   - Se a condição for verdadeira, significa que o arquivo excede o limite definido.
+   - `raise ValidationError("...")`
+     - Se o arquivo for maior que o limite, a função lança uma exceção `ValidationError` com a mensagem em português.
+     - Essa exceção interrompe o fluxo de execução e sinaliza ao chamador (por exemplo, o formulário ou o serializer) que a validação falhou — geralmente resultando em uma mensagem de erro exibida ao usuário.
+
+Continuando, agora nós vamos validar os tipos de arquivos que o usuário pode enviar:
+
+[documents/models.py](../documents/models.py)
+```python
+def validate_file_extension(value):
+    valid_extensions = [".txt", ".pdf", ".docx", ".md"]
+    if not any(str(value).lower().endswith(ext) for ext in valid_extensions):
+        raise ValidationError(
+            "Tipo de arquivo inválido. Use apenas os formatos .txt, .pdf, .docx ou .md."
+        )
+```
+
+**Explicação das principais partes do código:**
+
+ - `valid_extensions = [".txt", ".pdf", ".docx", ".md"]`
+   - Cria uma lista com as extensões válidas de arquivos permitidas:
+     - `.txt` → Texto simples;
+     - `.pdf` → Documento em PDF;
+     - `.docx` → Documento do Word;
+     - `.md` → Arquivo Markdown.
+ - `if not any(str(value).lower().endswith(ext) for ext in valid_extensions):`
+   - `str(value).lower()`
+     - Converte o nome do arquivo para minúsculas (garantindo que .PDF e .pdf sejam tratados igualmente).
+   - `.endswith(ext`
+     - O método `.endswith(ext)` verifica se o nome do arquivo termina com cada uma das extensões da lista.
+ - `raise ValidationError("...")`
+   - Se o arquivo não tiver uma extensão válida, a função levanta uma exceção `ValidationError` com uma mensagem de erro clara.
+
+Por fim, vamos implementar a classe `File` que vai ser responsável por representar os arquivos enviados pelos usuários:
+
+[documents/models.py](../documents/models.py)
+```python
+from django.conf import settings
+from django.db import models
+
+
+class File(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="files",
+    )
+    file = models.FileField(
+        upload_to="uploads/",
+        validators=[validate_file_size, validate_file_extension],
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name} (de {self.user.username})"
+```
+
+**Explicação das principais partes do código:**
+
+```python
+user = models.ForeignKey(
+    settings.AUTH_USER_MODEL,
+    on_delete=models.CASCADE,
+    related_name="files",
+)
+```
+
+ - Cria uma relação de chave estrangeira (ForeignKey) entre o modelo File e o modelo de usuário do projeto (definido em `settings.AUTH_USER_MODEL`).
+ - `on_delete=models.CASCADE`
+   - Se o usuário for excluído, todos os seus arquivos também serão automaticamente deletados.
+ - `related_name="files"`
+   - Permite acessar os arquivos de um usuário facilmente, por exemplo:
+     - `user.files.all()  # retorna todos os arquivos enviados por esse usuário`
+
+```python
+file = models.FileField(
+    upload_to="uploads/",
+    validators=[validate_file_size, validate_file_extension],
+)
+```
+
+ - **Define o campo de arquivo principal do modelo:**
+   - `upload_to="uploads/"`
+     - Especifica o diretório (dentro de *MEDIA_ROOT*) onde os arquivos serão armazenados.
+     - Exemplo: um arquivo será salvo como `media/uploads/nome_do_arquivo.pdf`.
+   - `validators=[validate_file_size, validate_file_extension]`
+     - Aplica os dois validadores personalizados:
+       - `validate_file_size` → Impede upload de arquivos maiores que *50MB*.
+       - `validate_file_extension` → Só aceita arquivos *.txt*, *.pdf*, *.docx* ou *.md*.
+     - **NOTE:** Esses validadores são chamados automaticamente quando o arquivo é enviado ou salvo.
+
+```python
+uploaded_at = models.DateTimeField(auto_now_add=True)
+```
+
+ - **Adiciona um campo que armazena a data e hora em que o arquivo foi enviado:**
+   - `auto_now_add=True`
+     - Faz com que o Django preencha automaticamente esse campo com o horário atual na criação do registro (e nunca mais o altere depois).
+   - Ideal para manter o histórico de uploads.
+
+```python
+def __str__(self):
+    return f"{self.file.name} (de {self.user.username})"
+```
+
+ - Define a representação textual do objeto quando ele é exibido no painel administrativo ou no shell do Django.
+ - Exemplo de saída: `uploads/relatorio.pdf (de rodrigo)`
+ - **NOTE:** Isso facilita a identificação dos arquivos no admin e em consultas.
+
+#### Aplicando as migrações
+
+Por fim, vamos aplicar as migrações:
+
+```bash
+python manage.py makemigrations documents
+```
+
+```bash
+python manage.py migrate
+```
 
 
 

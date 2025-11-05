@@ -21,6 +21,7 @@
  - [`17 - Criando o login com Google e GitHub`](#login-google-github)
  - [`18 - Criando e configurando o App documents`](#app-documents)
  - [`19 - Implementando os models do App documents`](#documents-models)
+ - [`20 - Criando o formulário customizado (FileUploadForm) com ModelForm`](#fileupload-form)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -2939,6 +2940,135 @@ python manage.py makemigrations documents
 ```bash
 python manage.py migrate
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="fileupload-form"></div>
+
+## `20 - Criando o formulário customizado (FileUploadForm) com ModelForm`
+
+Agora vamos criar um formulário customizado para o upload de arquivos utilizando o ModelForm.
+
+> **Mas o que é um "ModelForm"?**
+> O `ModelForm` é uma classe especial do Django que cria automaticamente um formulário HTML com base em um modelo (no nosso caso, o File).
+
+Ele faz a ponte entre:
+
+ - O front-end (HTML), onde o usuário escolhe e envia o arquivo;
+ - O back-end (models), onde os dados são validados e salvos no banco.
+
+Assim, o Django cuida automaticamente de:
+
+ - Validar os campos do formulário;
+ - Garantir o tipo correto de arquivo;
+ - Associar o arquivo ao usuário;
+ - Salvar no banco de dados e no diretório definido.
+
+[documents/forms.py](../documents/forms.py)
+```python
+from django import forms
+
+from .models import File
+
+
+class FileUploadForm(forms.ModelForm):
+    class Meta:
+        model = File
+        fields = ["file"]
+```
+
+**🧩 1. Importações necessárias**
+```python
+from django import forms
+from .models import File
+```
+
+ - `from django import forms`
+   - Importa o módulo *forms* do Django, que contém todas as classes e ferramentas para criar formulários HTML dinâmicos.
+ - `from .models import File`
+   - Importa o modelo File do mesmo app (documents).
+   - Assim, o formulário pode ser conectado diretamente ao modelo e saber como os dados devem ser armazenados no banco.
+
+**🧩 2. Criação do formulário de upload**
+```python
+class FileUploadForm(forms.ModelForm):
+    class Meta:
+        model = File
+        fields = ["file"]
+```
+
+ - `class FileUploadForm(forms.ModelForm):`
+   - Cria uma classe baseada em ModelForm, que é o tipo de formulário que já “entende” como o modelo funciona.
+ - `class Meta:`
+   - É uma classe interna usada para dizer ao Django qual modelo o formulário representa e quais campos devem aparecer.
+ - `model = File`
+   - Informa que este formulário está ligado ao modelo `File`.
+ - `fields = ["file"]`
+   - Define que apenas o campo file (o upload do arquivo em si) aparecerá no formulário.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

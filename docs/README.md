@@ -11,7 +11,7 @@
  - [`07 - Criando os docker-compose (iniciais) da nossa aplicação`](#init-docker-compose)
  - [`08 - Criando o container com PostgreSQL`](#postgresql-container)
  - [`09 - Instalando o Django e criando o projeto "core"`](#install-django-core)
- - [`10 - Configurções iniciais do Django (templates, static, media)`](#init-django-settings)
+ - [`10 - Configurações iniciais do Django (templates, static, media)`](#init-django-settings)
  - [`11 - Criando a landing page index.html`](#index-landing)
  - [`12 - Criando App users e um superusuario no Django Admin`](#app-users-more-django-admin)
  - [`13 - Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
@@ -847,9 +847,9 @@ runserver = 'python manage.py runserver'
 
 ## `10 - Configurações iniciais do Django (templates, static, media)`
 
-Aqui nós vamos fazer as configurações iniciais do Django que serão:
+> Aqui nós vamos fazer as configurações iniciais do Django que serão.
 
-> Fazer o Django identificar onde estarão os arquivos `templates`, `static` e `media`:
+Fazer o Django identificar onde estarão os arquivos `templates`, `static` e `media`:
 
 [core/settings.py](../core/settings.py)
 ```python
@@ -877,6 +877,37 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 ```
+
+Agora vamos garantir que o Django só sirva arquivos diretamente quando estiver em modo de desenvolvimento (DEBUG=True):
+
+[core/urls.py](../core/urls.py)
+```python
+from django.conf import settings
+from django.conf.urls.static import static
+
+  ...
+
+
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT
+    )
+```
+
+**Explicação das principais partes do código:**
+
+ - `from django.conf import settings`
+   - Permite acessar as variáveis definidas no `settings.py`, como `MEDIA_URL` e `MEDIA_ROOT`.
+ - `from django.conf.urls.static import static`
+   - Fornece uma função utilitária para servir arquivos estáticos e de mídia durante o desenvolvimento.
+ - `if settings.DEBUG`
+   - Garante que o Django **só sirva arquivos diretamente** quando estiver em modo de desenvolvimento (DEBUG=True).
+   - Em produção, essa função não deve ser usada — o servidor web (Nginx, Apache, etc.) serve esses arquivos.
+ - `urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)`
+   - Faz o Django mapear as URLs que começam com /media/ para os arquivos dentro da pasta física definida em MEDIA_ROOT.
+   - Assim, se o usuário enviar um arquivo uploads/teste.pdf, o Django poderá exibi-lo no navegador.
+
 
 
 

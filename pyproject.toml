@@ -28,6 +28,7 @@ line-length = 79
 exclude = [
     "core/settings.py",
     "documents/migrations",
+    "users/adapter.py"
 ]
 
 [tool.ruff.lint]

@@ -146,4 +146,7 @@ ACCOUNT_LOGIN_METHODS = {"username"}
 
 # Campos obrigatórios no cadastro (asterisco * indica que o campo é requerido)
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
-ACCOUNT_EMAIL_VERIFICATION = "optional"     # "mandatory" em produção
+ACCOUNT_EMAIL_VERIFICATION = "optional"  # "mandatory" em produção
+
+ACCOUNT_ADAPTER = "users.adapter.NoMessageAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "users.adapter.NoMessageSocialAccountAdapter"

@@ -32,25 +32,22 @@ def home_view(request):
 
 
 def login_view(request):
-    # Se o usuário já estiver logado, envia direto pra home
     if request.user.is_authenticated:
         return redirect("home")
 
-    # GET → renderiza pages/index.html (form de login)
-    if request.method == "GET":
-        return render(request, "pages/index.html")
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
 
-    # POST → processa credenciais
-    username = request.POST.get("username")
-    password = request.POST.get("password")
-    user = authenticate(request, username=username, password=password)
+        user = authenticate(request, username=username, password=password)
 
-    if user is not None:
-        login(request, user)
-        return redirect("home")
-    else:
-        messages.error(request, "Usuário ou senha inválidos.")
-        return render(request, "pages/index.html")
+        if user is not None:
+            login(request, user)
+            return redirect("home")
+        else:
+            messages.error(request, "⚠️ Usuário ou senha inválido.")
+
+    return render(request, "pages/index.html")
 
 
 def logout_view(request):

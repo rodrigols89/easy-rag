@@ -19,9 +19,7 @@
  - [`15 - Criando a página de cadastro (create-account.html + DB Commands)`](#create-account)
  - [`16 - Criando a sessão de login/logout + página home.html`](#session-home)
  - [`17 - Criando o login com Google e GitHub`](#login-google-github)
- - [`18 - Criando e configurando o App documents`](#app-documents)
- - [`19 - Implementando os models do App documents`](#documents-models)
- - [`20 - Criando o formulário customizado (FileUploadForm) com ModelForm`](#fileupload-form)
+ - [`TailwindCSS`](#tailwind-css)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -909,6 +907,26 @@ if settings.DEBUG:
    - Faz o Django mapear as URLs que começam com /media/ para os arquivos dentro da pasta física definida em MEDIA_ROOT.
    - Assim, se o usuário enviar um arquivo uploads/teste.pdf, o Django poderá exibi-lo no navegador.
 
+Por fim, mas não menos importante, vamos criar o arquivo `base.html`:
+
+[base.html](../templates/base.html)
+```html
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}{% endblock title %}</title>
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+        {% block head %}{% endblock head %}
+    </head>
+    <body class="min-h-screen bg-[#343541]">
+        {% block content %}{% endblock content %}
+        {% block scripts %}{% endblock scripts %}
+    </body>
+</html>
+```
+
 
 
 
@@ -995,14 +1013,10 @@ def login_view(request):
         return render(request, "pages/index.html")
 ```
 
-Por fim, vamos criar o HTML para essa `landing page`, por enquanto sem nenhuma estilização:
+Por fim, vamos criar o HTML para essa `landing page`; por enquanto sem nenhuma estilização:
 
 [templates/pages/index.html](../templates/pages/index.html)
 ```html
-{% extends "base.html" %}
-
-{% block title %}Easy RAG{% endblock %}
-
 {% block content %}
     <h1>Easy RAG</h1>
 
@@ -1054,9 +1068,130 @@ Por fim, vamos criar o HTML para essa `landing page`, por enquanto sem nenhuma e
 {% endblock %}
 ```
 
+![img](images/index-landing-01.png)  
+
+Continuando, vamos adicionar `base.html` e algumas classes *TailwindCSS* para ficar mais estilizado:
+
+[templates/pages/index.html](../templates/pages/index.html)
+```html
+{% extends "base.html" %}
+{% load socialaccount %}
+
+{% block title %}Easy RAG — Login{% endblock %}
+
+{% block content %}
+    <main class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <!-- Card -->
+            <div class="bg-white py-8 px-6 shadow rounded-lg">
+                <!-- Logo / Title -->
+                <div class="mb-6 text-center">
+                    <h2 class="mt-4 text-2xl font-semibold text-gray-900">Easy RAG</h2>
+                    <p class="mt-1 text-sm text-gray-500">Faça login para acessar seu painel</p>
+                </div>
+
+                {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                            <div class="text-red-600 bg-red-100 border border-red-200 rounded-md px-4 py-2 text-sm">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Form -->
+                <form method="post" action="" class="space-y-6">
+                    {% csrf_token %}
+
+                    <!-- Username -->
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">Usuário</label>
+                        <div class="mt-1">
+                            <input id="username" name="username" type="text" autocomplete="username"
+                                required
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
+                        <div class="mt-1">
+                            <input id="password" name="password" type="password" autocomplete="current-password"
+                                required
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <div>
+                        <button type="submit"
+                            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Entrar
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Divider -->
+                <div class="mt-6 relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-200"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="bg-white px-2 text-gray-500">ou continuar com</span>
+                    </div>
+                </div>
+
+                <!-- Social login buttons -->
+                <div class="mt-6 grid grid-cols-2 gap-3">
+                    <!-- Google -->
+                    <div>
+                        <a href="{% provider_login_url 'google' %}"
+                        class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50">
+                            <!-- Google icon (svg) -->
+                            <svg class="h-5 w-5 mr-2" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M533.5 278.4c0-18.2-1.6-36-4.7-53.2H272v100.8h147.4c-6.4 34.9-26 64.5-55.5 84.3v69.9h89.6c52.5-48.3 82-119.7 82-201.8z" fill="#4285F4"/>
+                                <path d="M272 544.3c73.5 0 135.3-24.5 180.4-66.7l-89.6-69.9c-24.9 16.7-56.9 26.6-90.8 26.6-69.7 0-128.7-47.1-149.8-110.4H31.6v69.5C76.3 494.7 169 544.3 272 544.3z" fill="#34A853"/>
+                                <path d="M122.2 327.1c-11.7-34.6-11.7-72 0-106.6V150.9H31.6c-39.6 77-39.6 168.5 0 245.5l90.6-69.3z" fill="#FBBC05"/>
+                                <path d="M272 107.7c39.9 0 75.7 13.7 104 40.6l78-78C403.3 24.7 337.2 0 272 0 169 0 76.3 49.6 31.6 150.9l90.6 69.5C143.3 154.8 202.3 107.7 272 107.7z" fill="#EA4335"/>
+                            </svg>
+                            <span class="text-sm font-medium text-gray-700">Google</span>
+                        </a>
+                    </div>
+
+                    <!-- GitHub -->
+                    <div>
+                        <a href="{% provider_login_url 'github' %}"
+                        class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50">
+                            <!-- GitHub icon -->
+                            <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.11.82-.26.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.745.083-.73.083-.73 1.205.085 1.84 1.236 1.84 1.236 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.304.762-1.603-2.665-.303-5.467-1.333-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.3 1.23a11.5 11.5 0 013.003-.404c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.243 2.873.12 3.176.77.84 1.234 1.91 1.234 3.22 0 4.61-2.807 5.624-5.48 5.92.43.372.823 1.102.823 2.222 0 1.604-.014 2.896-.014 3.29 0 .32.217.694.825.576C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"/>
+                            </svg>
+                            <span class="text-sm font-medium text-gray-700">GitHub</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Footer: cadastrar -->
+                <p class="mt-6 text-center text-sm text-gray-600">
+                    Não tem conta?
+                    <a href="{% url 'create-account' %}" class="font-medium text-blue-600 hover:text-blue-700">Cadastrar</a>
+                </p>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+```
+
+> **NOTE:**  
+> Não vou comentar sobre os *CSS/TailwindCSS* utilizados porque não é o foco desse tutorial.
+
 Finalmente, se você abrir o projeto (site) na rota/url principal vai aparecer essa `landing page`.
 
  - [http://localhost:8000/](http://localhost:8000/)
+
+![landing page](images/index-landing-02.png)  
 
 
 
@@ -2667,279 +2802,102 @@ Uma maneira de testar os logins sociais é abrindo a rota/url:
      - Criado os SocialApplication no Admin com Client ID/Secret e associado ao Site correto.
    - Se algum desses estiver faltando, o template pode lançar erros (DoesNotExist) ao renderizar a tag.
 
+#### 17.6 Criando `adapter.py`
 
+O arquivo `adapter.py` serve para *personalizar o comportamento interno do Django Allauth*, que é o sistema responsável pelos *logins*, *logouts* e *cadastros* — tanto locais quanto via provedores sociais (como Google e GitHub).
 
+Por padrão, o Allauth envia automaticamente mensagens para o sistema de mensagens do Django (django.contrib.messages), exibindo textos como:
 
+ - “Successfully signed in as rodrigols89.”
+ - “You have signed out.”
+ - “Your email has been confirmed.”
 
+Essas mensagens são geradas dentro dos adapters do `Allauth` — classes que controlam como ele interage com o Django.
 
+Agora, vamos criar nossas versões personalizadas dos adapters (`NoMessageAccountAdapter` e `NoMessageSocialAccountAdapter`) para impedir que essas mensagens automáticas sejam exibidas.
 
+> **NOTE:**  
+> Assim, temos controle total sobre quais mensagens aparecem para o usuário — mantendo o front mais limpo e sem textos gerados automaticamente.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
-
-<div id="app-documents"></div>
-
-## `18 - Criando e configurando o App documents`
-
-> Aqui nós vamos criar o App `documents` que vai ser responsável por armazenar os dados enviados pelos usuários no Banco de Dados.
-
-```bash
-python manage.py startapp documents
-```
-
-[core/settings.py](../core/settings.py)
+[users/adapter.py](../users/adapter.py)
 ```python
-INSTALLED_APPS = [
+from allauth.account.adapter import DefaultAccountAdapter
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 
-  ...
 
-    # seus apps
-    "users",
-    "documents",
-]
+class NoMessageAccountAdapter(DefaultAccountAdapter):
+    """
+    Adapter para suprimir mensagens que o allauth adicionaria ao sistema
+    de messages.
+
+    Aqui fazemos nada no add_message — assim o allauth não adiciona
+    mensagens.
+    """
+    def add_message(self, request, level, message_template,
+                    message_context=None):
+        # Return sem chamar super()
+        # Evita que o allauth chame messages.add_message(...)
+        return
+
+
+class NoMessageSocialAccountAdapter(DefaultSocialAccountAdapter):
+    """Mesmo para socialaccount, caso mensagens venham de lá."""
+    def add_message(self, request, level, message_template,
+                    message_context=None):
+        # Return sem chamar super()
+        # Evita que o allauth chame messages.add_message(...)
+        return
 ```
 
+Por fim, vamos adicionar algumas configurações gerais em `settings.py`:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
-
-<div id="documents-models"></div>
-
-## `19 - Implementando os models do App documents`
-
-> **Um model é a representação, no banco de dados, de um tipo de dado do seu sistema.**
-
-No nosso caso, queremos armazenar arquivos enviados pelos usuários, por isso o model File (ou Document) terá:
-
- - Uma ligação com o usuário dono (user);
- - O próprio arquivo (file);
- - A data de upload (uploaded_at).
-
-Além disso, adicionaremos **validações automáticas** para restringir o tipo de arquivo e o tamanho máximo (50MB).
-
- - **📎 Upload direto aqui no chat:**
-   - *Tamanho máximo:* 50 MB por arquivo;
-   - O usuário vai poder enviar vários arquivos, desde que cada um tenha até 50 MB;
-   - *Tipos aceitos:* textos (.txt, .pdf, .docx, .md).
-
-Vamos começar implementando uma validação se o arquivo enviado tem um tamanho maior do que 50MB:
-
-[documents/models.py](../documents/models.py)
+[settings.py](../core/settings.py)
 ```python
-from django.core.exceptions import ValidationError
-
-
-def validate_file_size(value):
-    max_size = 50 * 1024 * 1024  # 50 megabytes
-    if value.size > max_size:
-        raise ValidationError(
-            "O arquivo excede o tamanho máximo permitido de 50MB."
-        )
+ACCOUNT_ADAPTER = "users.adapter.NoMessageAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "users.adapter.NoMessageSocialAccountAdapter"
 ```
 
-**Explicação das principais partes do código:**
+**Observações:**
 
- - `max_size = 50 * 1024 * 1024`
-   - Aqui definimos a constante `max_size` em bytes.
-   - A expressão `50 * 1024 * 1024` converte 50 megabytes para bytes (1 MB = 1024 * 1024 bytes).
- - `if value.size > max_size:`
-   - Este bloco testa se o *tamanho do arquivo (value.size)* é maior que *max_size*:
-     - *value.size* normalmente retorna o tamanho do arquivo em bytes.
-   - Se a condição for verdadeira, significa que o arquivo excede o limite definido.
-   - `raise ValidationError("...")`
-     - Se o arquivo for maior que o limite, a função lança uma exceção `ValidationError` com a mensagem em português.
-     - Essa exceção interrompe o fluxo de execução e sinaliza ao chamador (por exemplo, o formulário ou o serializer) que a validação falhou — geralmente resultando em uma mensagem de erro exibida ao usuário.
-
-Continuando, agora nós vamos validar os tipos de arquivos que o usuário pode enviar:
-
-[documents/models.py](../documents/models.py)
-```python
-def validate_file_extension(value):
-    valid_extensions = [".txt", ".pdf", ".docx", ".md"]
-    if not any(str(value).lower().endswith(ext) for ext in valid_extensions):
-        raise ValidationError(
-            "Tipo de arquivo inválido. Use apenas os formatos .txt, .pdf, .docx ou .md."
-        )
-```
-
-**Explicação das principais partes do código:**
-
- - `valid_extensions = [".txt", ".pdf", ".docx", ".md"]`
-   - Cria uma lista com as extensões válidas de arquivos permitidas:
-     - `.txt` → Texto simples;
-     - `.pdf` → Documento em PDF;
-     - `.docx` → Documento do Word;
-     - `.md` → Arquivo Markdown.
- - `if not any(str(value).lower().endswith(ext) for ext in valid_extensions):`
-   - `str(value).lower()`
-     - Converte o nome do arquivo para minúsculas (garantindo que .PDF e .pdf sejam tratados igualmente).
-   - `.endswith(ext`
-     - O método `.endswith(ext)` verifica se o nome do arquivo termina com cada uma das extensões da lista.
- - `raise ValidationError("...")`
-   - Se o arquivo não tiver uma extensão válida, a função levanta uma exceção `ValidationError` com uma mensagem de erro clara.
-
-Por fim, vamos implementar a classe `File` que vai ser responsável por representar os arquivos enviados pelos usuários:
-
-[documents/models.py](../documents/models.py)
-```python
-from django.conf import settings
-from django.db import models
+ - Use o caminho Python completo para a classe. No exemplo acima assumimos que o app chama `users` e que `users` está no `INSTALLED_APPS`.
+ - Reinicie o servidor (python manage.py runserver) depois de editar `settings.py` para que as mudanças tenham efeito.
 
 
-class File(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="files",
-    )
-    file = models.FileField(
-        upload_to="uploads/",
-        validators=[validate_file_size, validate_file_extension],
-    )
-    uploaded_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"{self.file.name} (de {self.user.username})"
-```
 
-**Explicação das principais partes do código:**
 
-```python
-user = models.ForeignKey(
-    settings.AUTH_USER_MODEL,
-    on_delete=models.CASCADE,
-    related_name="files",
-)
-```
 
- - Cria uma relação de chave estrangeira (ForeignKey) entre o modelo File e o modelo de usuário do projeto (definido em `settings.AUTH_USER_MODEL`).
- - `on_delete=models.CASCADE`
-   - Se o usuário for excluído, todos os seus arquivos também serão automaticamente deletados.
- - `related_name="files"`
-   - Permite acessar os arquivos de um usuário facilmente, por exemplo:
-     - `user.files.all()  # retorna todos os arquivos enviados por esse usuário`
 
-```python
-file = models.FileField(
-    upload_to="uploads/",
-    validators=[validate_file_size, validate_file_extension],
-)
-```
 
- - **Define o campo de arquivo principal do modelo:**
-   - `upload_to="uploads/"`
-     - Especifica o diretório (dentro de *MEDIA_ROOT*) onde os arquivos serão armazenados.
-     - Exemplo: um arquivo será salvo como `media/uploads/nome_do_arquivo.pdf`.
-   - `validators=[validate_file_size, validate_file_extension]`
-     - Aplica os dois validadores personalizados:
-       - `validate_file_size` → Impede upload de arquivos maiores que *50MB*.
-       - `validate_file_extension` → Só aceita arquivos *.txt*, *.pdf*, *.docx* ou *.md*.
-     - **NOTE:** Esses validadores são chamados automaticamente quando o arquivo é enviado ou salvo.
 
-```python
-uploaded_at = models.DateTimeField(auto_now_add=True)
-```
 
- - **Adiciona um campo que armazena a data e hora em que o arquivo foi enviado:**
-   - `auto_now_add=True`
-     - Faz com que o Django preencha automaticamente esse campo com o horário atual na criação do registro (e nunca mais o altere depois).
-   - Ideal para manter o histórico de uploads.
 
-```python
-def __str__(self):
-    return f"{self.file.name} (de {self.user.username})"
-```
 
- - Define a representação textual do objeto quando ele é exibido no painel administrativo ou no shell do Django.
- - Exemplo de saída: `uploads/relatorio.pdf (de rodrigo)`
- - **NOTE:** Isso facilita a identificação dos arquivos no admin e em consultas.
 
-#### Aplicando as migrações
 
-Por fim, vamos aplicar as migrações:
 
-```bash
-python manage.py makemigrations documents
-```
 
-```bash
-python manage.py migrate
-```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2987,83 +2945,22 @@ python manage.py migrate
 
 ---
 
-<div id="fileupload-form"></div>
+<div id="tailwind-css"></div>
 
-## `20 - Criando o formulário customizado (FileUploadForm) com ModelForm`
+## `TailwindCSS`
 
-Agora vamos criar um formulário customizado para o upload de arquivos utilizando o ModelForm.
+> Durante o desenvolvimento desse projeto vamos utilizar várias classes CSS da biblioteca Tailwind.
 
-> **Mas o que é um "ModelForm"?**
-> O `ModelForm` é uma classe especial do Django que cria automaticamente um formulário HTML com base em um modelo (no nosso caso, o File).
+Aqui estão explicações de algumas delas:
 
-Ele faz a ponte entre:
-
- - O front-end (HTML), onde o usuário escolhe e envia o arquivo;
- - O back-end (models), onde os dados são validados e salvos no banco.
-
-Assim, o Django cuida automaticamente de:
-
- - Validar os campos do formulário;
- - Garantir o tipo correto de arquivo;
- - Associar o arquivo ao usuário;
- - Salvar no banco de dados e no diretório definido.
-
-[documents/forms.py](../documents/forms.py)
-```python
-from django import forms
-
-from .models import File
-
-
-class FileUploadForm(forms.ModelForm):
-    class Meta:
-        model = File
-        fields = ["file"]
-```
-
-**🧩 1. Importações necessárias**
-```python
-from django import forms
-from .models import File
-```
-
- - `from django import forms`
-   - Importa o módulo *forms* do Django, que contém todas as classes e ferramentas para criar formulários HTML dinâmicos.
- - `from .models import File`
-   - Importa o modelo File do mesmo app (documents).
-   - Assim, o formulário pode ser conectado diretamente ao modelo e saber como os dados devem ser armazenados no banco.
-
-**🧩 2. Criação do formulário de upload**
-```python
-class FileUploadForm(forms.ModelForm):
-    class Meta:
-        model = File
-        fields = ["file"]
-```
-
- - `class FileUploadForm(forms.ModelForm):`
-   - Cria uma classe baseada em ModelForm, que é o tipo de formulário que já “entende” como o modelo funciona.
- - `class Meta:`
-   - É uma classe interna usada para dizer ao Django qual modelo o formulário representa e quais campos devem aparecer.
- - `model = File`
-   - Informa que este formulário está ligado ao modelo `File`.
- - `fields = ["file"]`
-   - Define que apenas o campo file (o upload do arquivo em si) aparecerá no formulário.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ - `min-h-screen`
+   - **Função:** Define a altura mínima do elemento igual à altura total da tela (viewport).
+ - `bg-`
+   - **Função:** Define a *cor de fundo (background-color)* do elemento.
+   - **Parâmetro:** `bg-[#343541]` é um valor hexadecimal personalizado, ou seja, você pode trocar pelo código que quiser (`bg-[#RRGGBB]`).
+ - `antialiased`
+   - **Função:** Ativa o *suavizamento das bordas das fontes (antialiasing)*.
+   - **Uso comum:** Deixar o texto mais “limpo” e agradável visualmente, especialmente em telas de alta resolução.
 
 
 

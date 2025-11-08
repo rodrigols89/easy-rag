@@ -10,6 +10,18 @@ services:
     networks:
       - backend
 
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - backend
+
 volumes:
   postgres_data:
 

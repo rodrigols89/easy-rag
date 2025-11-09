@@ -23,6 +23,7 @@ ruff = "^0.14.0"
 pytest = "^8.4.2"
 taskipy = "^1.14.1"
 pre-commit = "^4.3.0"
+pytest-cov = "^7.0.0"
 
 [tool.ruff]
 line-length = 79

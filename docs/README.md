@@ -8,6 +8,8 @@
  - [`Instalando e configurando o Pytest`](#pytest-settings-pyproject)
  - [`Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
  - [`Instalando e configurando o pre-commit`](#precommit-settings)
+ - [`Variáveis de Ambiente`](#env-vars)
+ - [`Comandos Taskipy`](#taskipy-commands)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -547,6 +549,232 @@ precommit = 'pre-commit run --all-files'
 
 
 
+
+
+
+---
+
+<div id="env-vars"></div>
+
+## `Variáveis de Ambiente`
+
+Aqui só para fins de estudos (entendimento) vamos mostrar as variáveis de ambiente do nosso projeto:
+
+[.env](../.env)
+```bash
+# ==========================
+# CONFIGURAÇÃO DO POSTGRES
+# ==========================
+POSTGRES_DB=easy_rag_db                     # Nome do banco de dados a ser criado
+POSTGRES_USER=easyrag                       # Usuário do banco
+POSTGRES_PASSWORD=easyragpass               # Senha do banco
+POSTGRES_HOST=db                            # Nome do serviço (container) do banco no docker-compose
+POSTGRES_PORT=5432                          # Porta padrão do PostgreSQL
+
+# ==========================
+# CONFIGURAÇÃO DO REDIS
+# ==========================
+REDIS_HOST=redis                            # Nome do serviço (container) do Redis no docker-compose
+REDIS_PORT=6379                             # Porta padrão do Redis
+
+# ==========================
+# CONFIGURAÇÃO DJANGO
+# ==========================
+DJANGO_SECRET_KEY=djangopass                # Chave secreta do Django para criptografia e segurança
+DJANGO_DEBUG=True                           # True para desenvolvimento; False para produção
+DJANGO_ALLOWED_HOSTS=*                      # Hosts permitidos; * libera para qualquer host
+
+# ==========================
+# CONFIGURAÇÃO DO UVICORN
+# ==========================
+UVICORN_HOST=0.0.0.0                        # Escutar em todas as interfaces
+UVICORN_PORT=8000                           # Porta interna do app
+
+# ==========================
+# CONFIGURAÇÃO DO CELERY
+# ==========================
+
+# Celery / Redis
+CELERY_BROKER_URL=redis://redis:6379/0      # Onde as tasks vão ser enfileiradas (Redis service redis no compose)
+CELERY_RESULT_BACKEND=redis://redis:6379/1  # Onde o resultado das tasks será guardado (usar Redis DB 1 separado é comum)
+
+# Optional - For unit tests
+CELERY_TASK_ALWAYS_EAGER=False
+CELERY_TASK_EAGER_PROPAGATES=True
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="taskipy-commands"></div>
+
+## `Comandos Taskipy`
+
+> **Aqui vamos explicar quais os comando do Taskipy que nós estamos utilizando na nossa aplicação.**
+
+### Lint, Format, Pre-Commit
+
+```toml
+lint = 'ruff check'
+```
+
+ - Executa o Ruff (um linter rápido para Python) para verificar problemas no código, como:
+   - Erros de sintaxe;
+   - Problemas de estilo (PEP8);
+   - Imports não utilizados;
+   - Variáveis não usadas.
+   - **📌 Importante:** Este comando só verifica, não corrige nada.
+
+```toml
+pre_format = 'ruff check --fix'
+```
+
+ - Faz a mesma verificação do comando acima, mas corrige automaticamente os problemas que puder (como remover imports não usados, ajustar espaçamentos, etc.).
+
+```toml
+format = 'ruff format'
+```
+
+ - Formata o código de acordo com as regras de estilo configuradas no Ruff, similar ao Black.
+ - Foca mais na formatação visual do código do que nas regras de qualidade.
+
+```toml
+precommit = 'pre-commit run --all-files'
+```
+
+ - Executa todos os hooks do pre-commit em todos os arquivos do projeto.
+ - Pode incluir: lint, formatação, verificação de imports, checagem de segurança, etc.
+
+### Testes
+
+```toml
+pre_test = 'task lint'
+```
+
+ - Executa o comando `lint` antes de rodar os testes.
+ - Isso garante que o código está limpo antes de testar.
+
+```toml
+test = 'pytest -s -x --cov=. -vv'
+```
+
+ - Executa os testes com pytest com algumas opções:
+   - `-s` → Mostra os prints do código durante os testes;
+   - `-x` → Para na primeira falha.
+   - `--cov=.` → Mede a cobertura de testes no diretório atual.
+   - `-vv` → Modo muito verboso, mostrando mais detalhes de cada teste.
+
+```toml
+post_test = 'coverage html'
+```
+
+ - Depois que os testes rodam, gera um relatório HTML da cobertura de código.
+ - Normalmente, cria uma pasta `htmlcov/` com o relatório.
+
+### Docker (Containers)
+
+```toml
+prodcompose = 'docker compose -f docker-compose.yml up --build -d'
+```
+
+ - Sobe os containers do projeto em modo produção, usando `docker-compose.yml`.
+ - `-d` significa detached mode (em background).
+
+```toml
+devcompose = 'docker compose up -d'
+```
+
+ - Mesma ideia do anterior, mas usando o comando mais recente (docker compose sem hífen).
+ - `-d` Também sobe os containers em modo detached.
+ - Provavelmente pensado (usado) para ambiente de desenvolvimento.
+
+```toml
+rcontainers = 'docker compose up -d --force-recreate'
+```
+
+ - Recria todos os containers do projeto, mesmo que nada tenha mudado no código ou no `docker-compose.yml`.
+ - Útil quando o container está corrompido ou com cache problemático.
+
+```toml
+cleandocker = """
+docker stop $(docker ps -aq) 2>/dev/null || true &&
+docker rm $(docker ps -aq) 2>/dev/null || true &&
+docker rmi -f $(docker images -aq) 2>/dev/null || true &&
+docker volume rm $(docker volume ls -q) 2>/dev/null || true &&
+docker system prune -a --volumes -f
+"""
+```
+
+ - Limpa todos os *containers*, *imagens*, *volumes* e *cache* do Docker.
+
+### Comandos do Sistema (OS)
+
+```toml
+addpermissions = """
+sudo chown -R 1000:1000 ./static ./media ./staticfiles || true &&
+sudo chmod -R 755 ./static ./media ./staticfiles
+"""
+```
+
+ - `sudo chown -R 1000:1000 ./static ./media ./staticfiles || true`
+   - `sudo` → Executa o comando com privilégios de administrador.
+   - `chown -R 1000:1000` → Altera o dono e grupo de todos os arquivos e pastas *recursivamente (-R)* para *UID=1000* e *GID=1000*.
+   - `./static ./media ./staticfiles` → Pastas (ou poderiam ser arquivos) alvo do comando.
+   - `|| true` → Significa “se o comando falhar, não interrompa a execução”:
+     - Útil se você estiver rodando sem sudo ou se o usuário já for dono.
+   - **Resumo:** garante que todas as pastas e arquivos pertencem ao usuário 1000:1000, evitando problemas de permissões.
+ - `&& sudo chmod -R 755 ./static ./media ./staticfiles`
+   - `&&` → Só executa o próximo comando se o anterior tiver sucesso.
+   - `chmod -R 755` → Altera permissões recursivamente:
+     - `7 (rwx)` para o dono → leitura, escrita e execução.
+     - `5 (r-x)` para grupo e outros → leitura e execução, mas não escrita.
+   - `./static ./media ./staticfiles` → pastas alvo.
+   - **Resumo:** garante que:
+     - O dono pode ler, escrever e executar arquivos/pastas.
+     - Grupo e outros podem apenas ler e executar (necessário para o Nginx servir os arquivos).
 
 ---
 

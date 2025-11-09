@@ -1,20 +1,8 @@
 services:
-  db:
-    expose:
-      - "5432"
-  web:
-    container_name: django_prod
-    restart: always
-    command: >
-      sh -c "
-      python manage.py migrate &&
-      python manage.py collectstatic --noinput &&
-      gunicorn core.asgi:application -b 0.0.0.0:${UVICORN_PORT} -w 4 -k uvicorn.workers.UvicornWorker
-      "
-    ports:
-      - "${UVICORN_PORT}:${UVICORN_PORT}"
-    volumes:
-      - ./static:/code/staticfiles
-      - ./media:/code/media
+  backend:
+    command: uvicorn core.asgi:application --host 0.0.0.0 --port 8000 --env-file .env
     environment:
-      - DJANGO_DEBUG=False
+      - DEBUG=0
+    ports:
+      - "8000:8000"
+    restart: always

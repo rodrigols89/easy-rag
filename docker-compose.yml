@@ -2,28 +2,31 @@ services:
   db:
     image: postgres:15
     container_name: postgres_db
-    restart: always
-    env_file:
-      - .env
+    environment:
+      POSTGRES_USER: easyrag
+      POSTGRES_PASSWORD: easyrag
+      POSTGRES_DB: easy_rag_db
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
+    restart: always
 
-  web:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
-    restart: always
+    container_name: django_backend
+    command: uvicorn core.asgi:application --host 0.0.0.0 --port 8000 --env-file .env
     env_file:
       - .env
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
     depends_on:
       - db
-    networks:
-      - backend
+    restart: always
 
 volumes:
   postgres_data:
-
-networks:
-  backend:

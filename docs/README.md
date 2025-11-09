@@ -2,24 +2,23 @@
 
 ## Conteúdo
 
- - [`01 - Adicionando .editorconfig e .gitignore`](#editorconfig-gitignore)
- - [`02 - Iniciando o projeto com "poetry init"`](#poetry-init)
- - [`03 - Instalando e configurando o Ruff`](#ruff-settings-pyproject)
- - [`04 - Instalando e configurando o Pytest`](#pytest-settings-pyproject)
- - [`05 - Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
- - [`06 - Instalando e configurando o pre-commit`](#precommit-settings)
- - [`07 - Criando os docker-compose (iniciais) da nossa aplicação`](#init-docker-compose)
- - [`08 - Criando o container com PostgreSQL`](#postgresql-container)
- - [`09 - Criando o container com o Django e criando o projeto "core"`](#install-django-core)
- - [`10 - Configurações iniciais do Django (templates, static, media)`](#init-django-settings)
- - [`11 - Criando a landing page index.html`](#index-landing)
- - [`12 - Criando App users e um superusuario no Django Admin`](#app-users-more-django-admin)
- - [`13 - Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
- - [`14 - Configurando o Django para reconhecer o PostgreSQL como Banco de Dados`](#django-setting-db)
- - [`15 - Criando a página de cadastro (create-account.html + DB Commands)`](#create-account)
- - [`16 - Criando a sessão de login/logout + página home.html`](#session-home)
- - [`17 - Criando o login com Google e GitHub`](#login-google-github)
- - [`TailwindCSS`](#tailwind-css)
+ - [`Adicionando .editorconfig e .gitignore`](#editorconfig-gitignore)
+ - [`Iniciando o projeto com "poetry init"`](#poetry-init)
+ - [`Instalando e configurando o Ruff`](#ruff-settings-pyproject)
+ - [`Instalando e configurando o Pytest`](#pytest-settings-pyproject)
+ - [`Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
+ - [`Instalando e configurando o pre-commit`](#precommit-settings)
+ - [`Criando os docker-compose (iniciais) da nossa aplicação`](#init-docker-compose)
+ - [`Criando o container com PostgreSQL`](#postgresql-container)
+ - [`Criando o container com o Django e criando o projeto "core"`](#install-django-core)
+ - [`Configurações iniciais do Django (templates, static, media)`](#init-django-settings)
+ - [`Criando a landing page index.html`](#index-landing)
+ - [`Criando App users e um superusuario no Django Admin`](#app-users-more-django-admin)
+ - [`Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
+ - [`Configurando o Django para reconhecer o PostgreSQL como Banco de Dados`](#django-setting-db)
+ - [`Criando a página de cadastro (create-account.html + DB Commands)`](#create-account)
+ - [`Criando a sessão de login/logout + página home.html`](#session-home)
+ - [`Criando o login com Google e GitHub`](#login-google-github)
 <!---
 [WHITESPACE RULES]
 - "40" Whitespace character.
@@ -68,7 +67,7 @@
 
 <div id="editorconfig-gitignore"></div>
 
-## `01 - Adicionando .editorconfig e .gitignore`
+## `Adicionando .editorconfig e .gitignore`
 
 De início vamos adicionar os arquivos `.editorconfig` e `.gitignore` na raiz do projeto:
 
@@ -143,7 +142,7 @@ indent_size = 2
 
 <div id="poetry-init"></div>
 
-## `02 - Iniciando o projeto com "poetry init"`
+## `Iniciando o projeto com "poetry init"`
 
 Agora vamos iniciar nosso projeto com `poetry init`:
 
@@ -195,7 +194,7 @@ poetry init
 
 <div id="ruff-settings-pyproject"></div>
 
-## `03 - Instalando e configurando o Ruff`
+## `Instalando e configurando o Ruff`
 
 Aqui vamos instalar e configurar o **Ruff** no nosso `pyproject.toml`:
 
@@ -305,7 +304,7 @@ quote-style = "double"
 
 <div id="pytest-settings-pyproject"></div>
 
-## `04 - Instalando e configurando o Pytest`
+## `Instalando e configurando o Pytest`
 
 Agora nós vamos instalar e configurar o **Pytest** no nosso `pyproject.toml`.
 
@@ -373,7 +372,7 @@ addopts = '-p no:warnings'
 
 <div id="taskipy-settings-pyproject"></div>
 
-## `05 - Instalando e configurando o Taskipy`
+## `Instalando e configurando o Taskipy`
 
 Agora nós vamos instalar e configurar o **Taskipy** no nosso `pyproject.toml`.
 
@@ -457,7 +456,7 @@ post_test = 'coverage html'
 
 <div id="precommit-settings"></div>
 
-## `06 - Instalando e configurando o pre-commit`
+## `Instalando e configurando o pre-commit`
 
 Para garantir que antes de cada commit seu projeto passe por:
 
@@ -561,7 +560,7 @@ precommit = 'pre-commit run --all-files'
 
 <div id="init-docker-compose"></div>
 
-## `07 - Criando os docker-compose (iniciais) da nossa aplicação`
+## `Criando os docker-compose (iniciais) da nossa aplicação`
 
 É comum em uma aplicação ter os seguintes *docker-composes*:
 
@@ -647,7 +646,7 @@ devcompose = 'docker compose -f docker-compose.yml -f docker-compose.dev.yml up 
 
 <div id="postgresql-container"></div>
 
-## `08 - Criando o container com PostgreSQL`
+## `Criando o container com PostgreSQL`
 
 Antes de iniciarmos as tarefas envolvendo Banco de Dados é claro que precisamos de um Banco de Dados para trabalhar. Sabendo disso vamos criar/configar um container com PostgreSQL.
 
@@ -754,7 +753,7 @@ docker system prune -a --volumes -f
 
 <div id="install-django-core"></div>
 
-## `09 - Criando o container com o Django e criando o projeto "core"`
+## `Criando o container com o Django e criando o projeto "core"`
 
 Nessa parte do nosso projeto vamos executar várias tarefas, como:
 
@@ -1206,7 +1205,7 @@ runserver = 'python manage.py runserver'
 
 <div id="init-django-settings"></div>
 
-## `10 - Configurações iniciais do Django (templates, static, media)`
+## `Configurações iniciais do Django (templates, static, media)`
 
 > Aqui nós vamos fazer as configurações iniciais do Django que serão.
 
@@ -1335,7 +1334,7 @@ Por fim, mas não menos importante, vamos criar o arquivo `base.html`:
 
 <div id="index-landing"></div>
 
-## `11 - Criando a landing page index.html`
+## `Criando a landing page index.html`
 
 > Aqui nós vamos criar e configurar a `landing page` da nossa aplicação.
 
@@ -1600,7 +1599,7 @@ Finalmente, se você abrir o projeto (site) na rota/url principal vai aparecer e
 
 <div id="app-users-more-django-admin"></div>
 
-## `12 - Criando App users e um superusuario no Django Admin`
+## `Criando App users e um superusuario no Django Admin`
 
 Aqui de início vamos criar o App `users` que vai ser responsável por armazenar os dados dos nossos usuários no Banco de Dados.
 
@@ -1695,7 +1694,7 @@ Agora é só criar o Django Admin e verificar se temos a tabela `users`:
 
 <div id="psycopg2-binary"></div>
 
-## `13 - Instalando a biblioteca psycopg2-binary`
+## `Instalando a biblioteca psycopg2-binary`
 
  - Este é o driver oficial do PostgreSQL para Python — o Django usa ele internamente para conversar com o banco.
  - **NOTE:** Sem ele, o Django não consegue abrir a conexão porque depende de um driver nativo específico do PostgreSQL.
@@ -1766,7 +1765,7 @@ Mas pra enviar isso ao PostgreSQL, ele precisa de uma biblioteca cliente — e �
 
 <div id="django-setting-db"></div>
 
-## `14 - Configurando o Django para reconhecer o PostgreSQL (+ .env) como Banco de Dados`
+## `Configurando o Django para reconhecer o PostgreSQL (+ .env) como Banco de Dados`
 
 Antes de começar a configurar o Django para reconhecer o PostgreSQL como Banco de Dados, vamos fazer ele reconhecer as variáveis de ambiente dentro de [core/settings.py](../core/settings.py).
 
@@ -1992,7 +1991,7 @@ Running migrations:
 
 <div id="create-account"></div>
 
-## `15 - Criando a página de cadastro (create-account.html + DB Commands)`
+## `Criando a página de cadastro (create-account.html + DB Commands)`
 
 > Aqui nós vamos criar e configurar a nossa `página de cadastro`.
 
@@ -2482,7 +2481,7 @@ select * from auth_user;
 
 <div id="session-home"></div>
 
-## `16 - Criando a sessão de login/logout + página home.html`
+## `Criando a sessão de login/logout + página home.html`
 
 > Aqui nós vamos criar todo mecanismo de `login` e `logout` de usuários.
 
@@ -2776,7 +2775,7 @@ return redirect("/")
 
 <div id="login-google-github"></div>
 
-## `17 - Criando o login com Google e GitHub`
+## `Criando o login com Google e GitHub`
 
 #### 17.1 Instalando e Configurando a biblioteca django-allauth
 
@@ -3304,25 +3303,6 @@ SOCIALACCOUNT_ADAPTER = "users.adapter.NoMessageSocialAccountAdapter"
 
 
 
-
----
-
-<div id="tailwind-css"></div>
-
-## `TailwindCSS`
-
-> Durante o desenvolvimento desse projeto vamos utilizar várias classes CSS da biblioteca Tailwind.
-
-Aqui estão explicações de algumas delas:
-
- - `min-h-screen`
-   - **Função:** Define a altura mínima do elemento igual à altura total da tela (viewport).
- - `bg-`
-   - **Função:** Define a *cor de fundo (background-color)* do elemento.
-   - **Parâmetro:** `bg-[#343541]` é um valor hexadecimal personalizado, ou seja, você pode trocar pelo código que quiser (`bg-[#RRGGBB]`).
- - `antialiased`
-   - **Função:** Ativa o *suavizamento das bordas das fontes (antialiasing)*.
-   - **Uso comum:** Deixar o texto mais “limpo” e agradável visualmente, especialmente em telas de alta resolução.
 
 
 

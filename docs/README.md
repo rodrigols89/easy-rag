@@ -8,7 +8,12 @@
  - [`Instalando e configurando o Pytest`](#pytest-settings-pyproject)
  - [`Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
  - [`Instalando e configurando o pre-commit`](#precommit-settings)
+ - [`Criando os docker-compose (iniciais) da nossa aplicação`](#init-docker-compose)
+
+
+
  - [`Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
+ - [`Configurando o Django para reconhecer o PostgreSQL (+ .env) como Banco de Dados`](#django-setting-db)
  - [`Variáveis de Ambiente`](#env-vars)
  - [`Comandos Taskipy`](#taskipy-commands)
 <!---
@@ -552,7 +557,202 @@ precommit = 'pre-commit run --all-files'
 
 
 
+
 ---
+
+<div id="init-docker-compose"></div>
+
+## `Criando os docker-compose (iniciais) da nossa aplicação`
+
+É comum em uma aplicação ter os seguintes *docker-composes*:
+
+ - [⚙️ 1. docker-compose.yml (base comum)](../docker-compose.yml)
+   - Esse é o arquivo principal, usado em todos os ambientes.
+   - Define apenas o serviço de banco, os volumes e a rede.
+   - 👉 Esse arquivo nunca muda, nem em dev nem em prod — é a base do projeto.
+ - [⚙️ 2. Docker-compose.dev.yml](../docker-compose.dev.yml)
+   - Para desenvolvimento, o que muda normalmente é:
+     - Expor a porta do banco localmente (5432:5432);
+     - Permitir acesso de ferramentas como DBeaver, PgAdmin ou psql;
+     - Log mais detalhado.
+   - 💡 Aqui não precisamos repetir image, volumes, etc. — o Docker herda tudo do base e apenas aplica o override.
+ - [⚙️ 3. Docker-compose.prod.yml](../docker-compose.prod.yml)
+   - Na produção, normalmente:
+     - Não expomos a porta 5432 (para segurança);
+     - Mantemos o banco acessível apenas pela rede interna do Docker;
+     - Ativamos backup automatizado (opcional mais pra frente).
+   - ⚠️ expose deixa a porta visível apenas dentro da rede Docker, sem expor para o host ou internet.
+
+De início vamos criar apenas o compose base:
+
+[docker-compose.yml](../docker-compose.yml)
+```yaml
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+```
+
+Agora vamos criar comandos no Taskipy para executar cada um dos docker-compose:
+
+[pyproject.toml](../pyproject.toml)
+```toml
+[tool.taskipy.tasks]
+prodcompose = 'docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d'
+devcompose = 'docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d'
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ---
@@ -588,6 +788,232 @@ INSERT INTO auth_user (username) VALUES ('drigols');
 
 Mas pra enviar isso ao PostgreSQL, ele precisa de uma biblioteca cliente — e é aí que entra o psycopg2.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="django-setting-db"></div>
+
+## `Configurando o Django para reconhecer o PostgreSQL (+ .env) como Banco de Dados`
+
+Antes de começar a configurar o Django para reconhecer o PostgreSQL como Banco de Dados, vamos fazer ele reconhecer as variáveis de ambiente dentro de [core/settings.py](../core/settings.py).
+
+Primeiro, vamos instalar o `python-dotenv`:
+
+```bash
+poetry add python-dotenv@latest
+```
+
+Agora iniciar uma instância do `python-dotenv`:
+
+[core/settings.py](../core/settings.py)
+```python
+import os
+
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+```
+
+> **Como testar que está funcionando?**
+
+Primeiro, imagine que nós temos as seguinte variáveis de ambiente:
+
+[.env](../.env)
+```bash
+POSTGRES_DB=easy_rag_db           # Nome do banco de dados a ser criado
+POSTGRES_USER=easyrag             # Usuário do banco
+POSTGRES_PASSWORD=easyragpass     # Senha do banco
+POSTGRES_HOST=localhost           # Nome do serviço (container) do banco no docker-compose
+POSTGRES_PORT=5432                # Porta padrão do PostgreSQL
+```
+
+Agora vamos abrir um **shell interativo do Django**, ou seja, um terminal Python (REPL) com o Django já carregado, permitindo testar código com acesso total ao projeto.
+
+É parecido com abrir um python normal, mas com estas diferenças:
+
+| Recurso                           | Python normal | `manage.py shell` |
+| --------------------------------- | ------------- | ----------------- |
+| Carrega o Django automaticamente  | ❌ Não       | ✅ Sim            |
+| Consegue acessar `settings.py`    | ❌           | ✅                |
+| Consegue acessar models           | ❌           | ✅                |
+| Consegue consultar banco de dados | ❌           | ✅                |
+| Lê o `.env` (se Django carregar)  | ❌           | ✅                |
+| Útil para debugar                 | Razoável      | Excelente         |
+
+```bash
+python manage.py shell
+
+6 objects imported automatically (use -v 2 for details).
+Python 3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+(InteractiveConsole)
+
+>>> import os
+
+>>> print(os.getenv("POSTGRES_HOST"))
+localhost
+
+>>> print(os.getenv("POSTGRES_PASSWORD"))
+easyragpass
+```
+
+> **NOTE:**  
+> Vejam que realmente nós estamos conseguindo acessar as variáveis de ambiente.
+
+#### Continuando...
+
+> Uma coisa importante é dizer ao Django qual Banco de Dados vamos utilizar.
+
+Por exemplo:
+
+[core/settings.py](../core/settings.py)
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'easy_rag'),
+        'USER': os.getenv('POSTGRES_USER', 'easyrag'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'supersecret'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+    }
+}
+```
+
+No exemplo acima nós temos um dicionário que informa ao Django como conectar ao banco de dados:
+
+ - `ENGINE`
+   - Qual backend/driver o Django usa — aqui, PostgreSQL.
+ - `NAME`
+   - Nome do banco.
+ - `USER`
+   - Usuário do banco.
+ - `PASSWORD`
+   - Senha do usuário.
+ - `HOST`
+   - Host/hostname do servidor de banco.
+ - `PORT`
+   - Porta TCP onde o Postgres escuta.
+
+#### `O que os.getenv('VAR', 'default') faz, exatamente?`
+
+`os.getenv` vem do módulo padrão `os` e faz o seguinte:
+
+ - Tenta ler a variável de ambiente chamada 'VAR' (por exemplo POSTGRES_DB);
+ - Se existir, retorna o valor da variável de ambiente;
+ - Se não existir, retorna o valor padrão passado como segundo argumento ('default').
+
+#### `Por que às vezes PASSAMOS um valor padrão (default) no código?`
+
+ - *Conforto no desenvolvimento local:* evita quebrar o projeto se você esquecer de definir `.env`.
+ - *Documentação inline:* dá uma ideia do nome esperado (easy_rag, 5432, etc.).
+ - *Teste rápido:* você pode rodar `manage.py` localmente sem carregar variáveis.
+
+> **NOTE:**  
+> Mas atenção: os valores padrões não devem conter segredos reais (ex.: supersecret) no repositório público — isso é um risco de segurança.
+
+#### `Por que não você não deveria colocar senhas no código?`
+
+ - Repositórios (Git) podem vazar ou ser lidos por terceiros.
+ - Código pode acabar em backups, imagens Docker, etc.
+ - Difícil rotacionar/chavear senhas se espalhadas pelo repositório.
+
+> **Regra prática:**  
+> - Nunca colocar credenciais reais em `settings.py`.
+> - Use `.env` (não comitado) ou um *"secret manager"*.
+
+Então, por enquanto vamos omitir alguns valores padrão (default):
+
+[core/settings.py](../core/settings.py)
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'easy_rag'),
+        'USER': os.getenv('POSTGRES_USER', 'easyrag'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+    }
+}
+```
+
+Por fim, vamos testar a conexão ao banco de dados:
+
+```bash
+python manage.py migrate
+```
+
+**OUTPUT:**
+```bash
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying sessions.0001_initial... OK
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions
+Running migrations:
+  No migrations to apply.
+```
 
 
 

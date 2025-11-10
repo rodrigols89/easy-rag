@@ -8,12 +8,7 @@
  - [`Instalando e configurando o Pytest`](#pytest-settings-pyproject)
  - [`Instalando e configurando o Taskipy`](#taskipy-settings-pyproject)
  - [`Instalando e configurando o pre-commit`](#precommit-settings)
- - [`Criando os docker-compose (iniciais) da nossa aplicação`](#init-docker-compose)
-
-
-
- - [`Instalando a biblioteca psycopg2-binary`](#psycopg2-binary)
- - [`Configurando o Django para reconhecer o PostgreSQL (+ .env) como Banco de Dados`](#django-setting-db)
+ - [`Instalando/Configurando/Exportando o Django`](#django-settings)
  - [`Variáveis de Ambiente`](#env-vars)
  - [`Comandos Taskipy`](#taskipy-commands)
 <!---
@@ -560,462 +555,447 @@ precommit = 'pre-commit run --all-files'
 
 ---
 
-<div id="init-docker-compose"></div>
+<div id="django-settings"></div>
 
-## `Criando os docker-compose (iniciais) da nossa aplicação`
+## `Instalando/Configurando/Exportando o Django`
 
-É comum em uma aplicação ter os seguintes *docker-composes*:
+De início aqui vamos instalar as bibliotecas `django` e `uvicorn`:
 
- - [⚙️ 1. docker-compose.yml (base comum)](../docker-compose.yml)
-   - Esse é o arquivo principal, usado em todos os ambientes.
-   - Define apenas o serviço de banco, os volumes e a rede.
-   - 👉 Esse arquivo nunca muda, nem em dev nem em prod — é a base do projeto.
- - [⚙️ 2. Docker-compose.dev.yml](../docker-compose.dev.yml)
-   - Para desenvolvimento, o que muda normalmente é:
-     - Expor a porta do banco localmente (5432:5432);
-     - Permitir acesso de ferramentas como DBeaver, PgAdmin ou psql;
-     - Log mais detalhado.
-   - 💡 Aqui não precisamos repetir image, volumes, etc. — o Docker herda tudo do base e apenas aplica o override.
- - [⚙️ 3. Docker-compose.prod.yml](../docker-compose.prod.yml)
-   - Na produção, normalmente:
-     - Não expomos a porta 5432 (para segurança);
-     - Mantemos o banco acessível apenas pela rede interna do Docker;
-     - Ativamos backup automatizado (opcional mais pra frente).
-   - ⚠️ expose deixa a porta visível apenas dentro da rede Docker, sem expor para o host ou internet.
+```bash
+poetry add django@latest
+```
 
-De início vamos criar apenas o compose base:
+```bash
+poetry add uvicorn@latest
+```
+
+#### `Criando o projeto Django (core)`
+
+```bash
+django-admin startproject core .
+```
+
+Outra coisa importante agora é excluir o arquivo `core/settings.py` do ruff:
+
+[pyproject.toml](../pyproject.toml)
+```bash
+[tool.ruff]
+line-length = 79
+exclude = [
+    "core/settings.py",
+]
+```
+
+> **NOTE:**  
+> Agora esse arquivo não vai mais passar pelo `lint`.
+
+#### `Configurando os arquivos: templates, static e media`
+
+> Aqui nós vamos fazer as configurações iniciais do Django que serão.
+
+Fazer o Django identificar onde estarão os arquivos `templates`, `static` e `media`:
+
+[core/settings.py](../core/settings.py)
+```python
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+```
+
+Agora vamos garantir que o Django só sirva arquivos diretamente quando estiver em *modo de desenvolvimento (DEBUG=True)*:
+
+[core/urls.py](../core/urls.py)
+```python
+from django.conf import settings
+from django.conf.urls.static import static
+
+  ...
+
+
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT
+    )
+```
+
+**Explicação das principais partes do código:**
+
+ - `from django.conf import settings`
+   - Permite acessar as variáveis definidas no `settings.py`, como `MEDIA_URL` e `MEDIA_ROOT`.
+ - `from django.conf.urls.static import static`
+   - Fornece uma função utilitária para servir arquivos estáticos e de mídia durante o desenvolvimento.
+ - `if settings.DEBUG`
+   - Garante que o Django **só sirva arquivos diretamente** quando estiver em modo de desenvolvimento (DEBUG=True).
+   - Em produção, essa função não deve ser usada — o servidor web (Nginx, Apache, etc.) serve esses arquivos.
+ - `urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)`
+   - Faz o Django mapear as URLs que começam com /media/ para os arquivos dentro da pasta física definida em MEDIA_ROOT.
+   - Assim, se o usuário enviar um arquivo uploads/teste.pdf, o Django poderá exibi-lo no navegador.
+
+Até aqui está quase tudo ok para criarmos um Container com Django e Uvicorn...
+
+> Antes de criar nossos containers, precisamos gerar os `requirements.txt` e `requirements-dev.txt`.
+
+**Mas, primeiro devemos instalar o plugin "export" do Poetry:**
+```bash
+poetry self add poetry-plugin-export
+```
+
+Agora vamos gerar `requirements.txt` de *produção*:
+
+```bash
+poetry export --without-hashes --format=requirements.txt --output=requirements.txt
+```
+
+Continuando, agora vamos gerar `requirements-dev.txt` (esse é mais utilizado durante o desenvolvimento para quem não usa o Poetry):
+
+```bash
+poetry export --without-hashes --with dev --format=requirements.txt --output=requirements-dev.txt
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="web-container"></div>
+
+## `Criando o container web: Dockerfile + Django + Uvicorn`
+
+Antes de criar o container contendo o *Django* e o *Uvicorn*, vamos criar o nosso Dockerfile...
+
+> **Mas por que eu preciso de um Dockerfile para o Django + Uvicorn?**
+
+**NOTE:**  
+O Dockerfile é onde você diz **como** essa imagem será construída.
+
+> **O que o Dockerfile faz nesse caso?**
+
+ - Escolhe a imagem base (ex.: python:3.12-slim) para rodar o Python.
+ - Instala as dependências do sistema (por exemplo, libpq-dev para PostgreSQL).
+ - Instala as dependências Python (pip install -r requirements.txt).
+ - Copia o código do projeto para dentro do container.
+ - Define o diretório de trabalho (WORKDIR).
+ - Configura o comando de entrada.
+ - Organiza assets estáticos e outras configurações.
+
+> **Quais as vantagens de usar o Dockerfile?**
+
+ - **Reprodutibilidade:**
+   - Qualquer pessoa consegue subir seu projeto com o mesmo ambiente que você usa.
+ - **Isolamento:**
+   - Evita conflitos de versão no Python e dependências.
+ - **Customização:**
+   - Você pode instalar pacotes de sistema ou bibliotecas específicas.
+ - **Portabilidade:**
+   - Mesma imagem funciona no seu PC, no servidor ou no CI/CD.
+
+O nosso [Dockerfile](../Dockerfile) vai ficar da seguinte maneira:
+
+[Dockerfile](../Dockerfile)
+```bash
+# ===============================
+# 1️⃣ Imagem base
+# ===============================
+FROM python:3.12-slim
+
+# ===============================
+# 2️⃣ Configuração de ambiente
+# ===============================
+WORKDIR /code
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+# ===============================
+# 3️⃣ Dependências do sistema
+# ===============================
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    netcat-traditional \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# ===============================
+# 4️⃣ Instalar dependências Python
+# ===============================
+COPY requirements.txt /code/
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# ===============================
+# 5️⃣ Copiar código do projeto
+# ===============================
+COPY . /code/
+
+# ===============================
+# 6️⃣ Ajustes de produção
+# ===============================
+# Criar usuário não-root para segurança
+RUN adduser --disabled-password --no-create-home appuser && \
+    chown -R appuser /code
+USER appuser
+
+# ===============================
+# 7️⃣ Porta exposta (Uvicorn usa 8000 por padrão)
+# ===============================
+EXPOSE 8000
+
+# ===============================
+# 8️⃣ Comando padrão
+# ===============================
+# Mantém o container rodando e abre um shell se usado com
+# `docker run` sem sobrescrever comando.
+CMD ["bash"]
+```
+
+#### `Criando o docker compose para o container web`
+
+> Aqui vamos entender e criar um container contendo o `Django` e o `Uvicorn`.
+
+ - **Função:**
+   - Executar a aplicação Django em produção.
+ - **Quando usar:**
+   - Sempre para servir sua aplicação backend.
+ - **Vantagens:**
+   - Uvicorn é um servidor WSGI otimizado para produção.
+   - Separa lógica da aplicação da entrega de arquivos estáticos.
+ - **Desvantagens:**
+   - Não serve arquivos estáticos eficientemente.
+
+Antes de criar nosso container contendo o *Django* e o *Uvicorn*, vamos criar as variáveis de ambiente para esse container:
+
+[.env](../.env)
+```bash
+# ==========================
+# CONFIGURAÇÃO DJANGO
+# ==========================
+DJANGO_SECRET_KEY=change-me       # Chave secreta do Django para criptografia e segurança
+DJANGO_DEBUG=True                 # True para desenvolvimento; False para produção
+DJANGO_ALLOWED_HOSTS=*            # Hosts permitidos; * libera para qualquer host
+
+# ==========================
+# CONFIGURAÇÃO DO UVICORN
+# ==========================
+UVICORN_HOST=0.0.0.0              # Escutar em todas as interfaces
+UVICORN_PORT=8000                 # Porta interna do app
+```
+
+ - `DJANGO`
+   - `DJANGO_SECRET_KEY` → chave única e secreta usada para assinar cookies, tokens e outras partes sensíveis.
+   - `DJANGO_DEBUG` → habilita/desabilita debug e mensagens de erro detalhadas.
+   - `DJANGO_ALLOWED_HOSTS` → lista de domínios que o Django aceita; `*` significa todos (não recomendado para produção).
+ - `UVICORN`
+   - `UVICORN_HOST` → define o IP/host onde o servidor Uvicorn vai rodar.
+   - `UVICORN_PORT` → porta interna que o container expõe para o nginx ou para acesso direto no dev.
+
+Continuando, o arquivo [docker-compose.yml](../docker-compose.yml) para o nosso container *web* ficará assim:
 
 [docker-compose.yml](../docker-compose.yml)
-```yaml
-volumes:
-  postgres_data:
+```yml
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django_web
+    restart: always
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      uvicorn core.asgi:application --reload --host ${UVICORN_HOST} --port ${UVICORN_PORT}
+      "
+    env_file:
+      - .env
+    volumes:
+      - .:/code
+      - ./static:/code/staticfiles
+      - ./media:/code/media
+    ports:
+      - "${UVICORN_PORT}:${UVICORN_PORT}"
+    networks:
+      - backend
 
 networks:
   backend:
 ```
 
-Agora vamos criar comandos no Taskipy para executar cada um dos docker-compose:
-
-[pyproject.toml](../pyproject.toml)
-```toml
-[tool.taskipy.tasks]
-prodcompose = 'docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d'
-devcompose = 'docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d'
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
-
-<div id="psycopg2-binary"></div>
-
-## `Instalando a biblioteca psycopg2-binary`
-
-> Antes de começar a trabalhar com o Django, precisamos instalar o driver nativo do nosso Banco de Dados (PostgreSQL).
-
- - Este é o driver oficial do PostgreSQL para Python — o Django usa ele internamente para conversar com o banco.
- - **NOTE:** Sem ele, o Django não consegue abrir a conexão porque depende de um driver nativo específico do PostgreSQL.
+ - `build: context + dockerfile.`
+   - `context: .`
+     - Ponto `(.)` significa que o contexto de build é a raiz do projeto.
+     - Isso quer dizer que todos os arquivos dessa pasta estarão disponíveis para o build.
+   - `dockerfile: Dockerfile`
+     - Nome do arquivo Dockerfile usado para construir a imagem.
+ - `container_name: django_web`
+   - Nome fixo do container (para facilitar comandos como docker logs django_web).
+ - `restart: always`
+   - 🔹 O container vai voltar sempre que o Docker daemon subir, independente do motivo da parada.
+   - 🔹 Mesmo se você der *docker stop*, quando o host reiniciar o container volta sozinho.
+   - 👉 Bom para produção quando você quer *99% de disponibilidade*.
+ - `command`
+   - `sh -c`
+     - Executa um shell POSIX dentro do container e roda tudo o que estiver entre aspas como um único comando.
+     - Usar *sh -c* permite encadear vários comandos com &&.
+   - `python manage.py migrate &&`
+     - Aplica migrações do Django ao banco (cria/atualiza tabelas).
+     - O *&&* significa: só execute o próximo comando se este retornar sucesso (exit code 0).
+     - **NOTE:** Se a migração falhar, nada depois roda.
+   - `python manage.py collectstatic --noinput &&`
+     - Coleta os arquivos estáticos de todas as apps para a pasta do *STATIC_ROOT*.
+     - *--noinput* evita prompts interativos (obrigatório em automação/containers).
+     - **NOTE:** Novamente, *&&* encadeia: só continua se deu tudo certo.
+   - `uvicorn core.asgi:application --reload --host ${UVICORN_HOST} --port ${UVICORN_PORT}`
+     - Inicia o servidor ASGI com Uvicorn usando a aplicação em core/asgi.py (objeto application).
+     - `--reload` → modo desenvolvimento; monitora arquivos e reinicia automaticamente ao salvar (não use em produção).
+     - `--host ${UVICORN_HOST}` → endereço de bind dentro do container. Normalmente 0.0.0.0 para aceitar conexões externas.
+     - `--port ${UVICORN_PORT}` → porta interna onde o Uvicorn escuta (ex.: 8000).
+ - `env_file: .env`
+   - Carrega variáveis do `.env`.
+ - `volumes:`
+   - `./:/code`
+     - pasta atual `.` → `/code` dentro do container.
+   - `./static:/code/staticfiles`
+     - `./static` → `/code/staticfiles`
+   - `./media:/code/media`
+     - `./media` → `/code/media`
+   - **NOTE:** Aqui estamos aplicando o coneito de *"Bind Mounts"*.
+ - `ports: "${UVICORN_PORT}:${UVICORN_PORT}"`
+   - Para acessar pelo navegador no seu computador, você precisa de `ports`.
+   - **NOTE:** `expose` apenas informa a porta para outros containers, não mapeia para o host.
+ - `networks: backend`
+   - Rede interna para comunicação.
+
+#### `Crie as pastas ./static, ./media e ./staticfiles no host (máquina local)`
+
+Uma observação aqui é que antes de nós executamos o container web nós precisamos criar as pastas (diretórios) `./static`, `./media` e `./staticfiles` no host (máquina local).
+
+> **Por que?**
+
+Porque se essas pastas (diretórios) forem criadas pelo container ela não terterão as permissões do nosso usuário (do nosso sistema), elas virão com permissão root (do container).
+
+O comando para fazer isso é o seguinte:
 
 ```bash
-poetry add psycopg2-binary@latest
+mkdir -p static media staticfiles
 ```
 
-#### `O que o psycopg2-binary faz?`
+Continuando...  
 
-> Ele é a ponte entre o Django (Python) e o PostgreSQL (servidor).
+> **Uma dúvida... tudo o que eu modifico no meu projeto principal é alterado no container?**
 
-Quando o Django executa algo como:
+**SIM!**  
+No nosso caso, sim — porque no serviço `web` você fez este mapeamento:
+
+[docker-compose.yml](../docker-compose.yml)
+```yaml
+volumes:
+  - .:/code
+```
+
+Isso significa que:
+
+ - O diretório atual no seu `host (.)` é montado dentro do container em `/code`.
+ - Qualquer alteração nos arquivos do seu projeto no host aparece instantaneamente no container.
+ - E o inverso também vale: se você mudar algo dentro do container nessa pasta, muda no seu host.
+
+Continuando, agora é só criar o container:
+
+**Cria o(s) container(s) em background:**
+```bash
+docker compose up -d
+```
+
+> **NOTE:**
+> Se você desejar conectar nesse container via bash utilize o seguinte comando (As vezes é necesario esperar o container subir):
+
+**Entrar no container "django_web" via bash:**
+```bash
+docker exec -it django_web bash
+```
+
+Agora você pode listar as dependências Python instaladas do container:
 
 ```bash
-User.objects.create(username="drigols")
-```
-
-internamente ele faz uma chamada SQL tipo:
-
-```sql
-INSERT INTO auth_user (username) VALUES ('drigols');
-```
-
-Mas pra enviar isso ao PostgreSQL, ele precisa de uma biblioteca cliente — e é aí que entra o psycopg2.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
-
-<div id="django-setting-db"></div>
-
-## `Configurando o Django para reconhecer o PostgreSQL (+ .env) como Banco de Dados`
-
-Antes de começar a configurar o Django para reconhecer o PostgreSQL como Banco de Dados, vamos fazer ele reconhecer as variáveis de ambiente dentro de [core/settings.py](../core/settings.py).
-
-Primeiro, vamos instalar o `python-dotenv`:
-
-```bash
-poetry add python-dotenv@latest
-```
-
-Agora iniciar uma instância do `python-dotenv`:
-
-[core/settings.py](../core/settings.py)
-```python
-import os
-
-from pathlib import Path
-from dotenv import load_dotenv
-
-load_dotenv()
-```
-
-> **Como testar que está funcionando?**
-
-Primeiro, imagine que nós temos as seguinte variáveis de ambiente:
-
-[.env](../.env)
-```bash
-POSTGRES_DB=easy_rag_db           # Nome do banco de dados a ser criado
-POSTGRES_USER=easyrag             # Usuário do banco
-POSTGRES_PASSWORD=easyragpass     # Senha do banco
-POSTGRES_HOST=localhost           # Nome do serviço (container) do banco no docker-compose
-POSTGRES_PORT=5432                # Porta padrão do PostgreSQL
-```
-
-Agora vamos abrir um **shell interativo do Django**, ou seja, um terminal Python (REPL) com o Django já carregado, permitindo testar código com acesso total ao projeto.
-
-É parecido com abrir um python normal, mas com estas diferenças:
-
-| Recurso                           | Python normal | `manage.py shell` |
-| --------------------------------- | ------------- | ----------------- |
-| Carrega o Django automaticamente  | ❌ Não       | ✅ Sim            |
-| Consegue acessar `settings.py`    | ❌           | ✅                |
-| Consegue acessar models           | ❌           | ✅                |
-| Consegue consultar banco de dados | ❌           | ✅                |
-| Lê o `.env` (se Django carregar)  | ❌           | ✅                |
-| Útil para debugar                 | Razoável      | Excelente         |
-
-```bash
-python manage.py shell
-
-6 objects imported automatically (use -v 2 for details).
-Python 3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0] on linux
-Type "help", "copyright", "credits" or "license" for more information.
-(InteractiveConsole)
-
->>> import os
-
->>> print(os.getenv("POSTGRES_HOST"))
-localhost
-
->>> print(os.getenv("POSTGRES_PASSWORD"))
-easyragpass
-```
-
-> **NOTE:**  
-> Vejam que realmente nós estamos conseguindo acessar as variáveis de ambiente.
-
-#### Continuando...
-
-> Uma coisa importante é dizer ao Django qual Banco de Dados vamos utilizar.
-
-Por exemplo:
-
-[core/settings.py](../core/settings.py)
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'easy_rag'),
-        'USER': os.getenv('POSTGRES_USER', 'easyrag'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'supersecret'),
-        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
-    }
-}
-```
-
-No exemplo acima nós temos um dicionário que informa ao Django como conectar ao banco de dados:
-
- - `ENGINE`
-   - Qual backend/driver o Django usa — aqui, PostgreSQL.
- - `NAME`
-   - Nome do banco.
- - `USER`
-   - Usuário do banco.
- - `PASSWORD`
-   - Senha do usuário.
- - `HOST`
-   - Host/hostname do servidor de banco.
- - `PORT`
-   - Porta TCP onde o Postgres escuta.
-
-#### `O que os.getenv('VAR', 'default') faz, exatamente?`
-
-`os.getenv` vem do módulo padrão `os` e faz o seguinte:
-
- - Tenta ler a variável de ambiente chamada 'VAR' (por exemplo POSTGRES_DB);
- - Se existir, retorna o valor da variável de ambiente;
- - Se não existir, retorna o valor padrão passado como segundo argumento ('default').
-
-#### `Por que às vezes PASSAMOS um valor padrão (default) no código?`
-
- - *Conforto no desenvolvimento local:* evita quebrar o projeto se você esquecer de definir `.env`.
- - *Documentação inline:* dá uma ideia do nome esperado (easy_rag, 5432, etc.).
- - *Teste rápido:* você pode rodar `manage.py` localmente sem carregar variáveis.
-
-> **NOTE:**  
-> Mas atenção: os valores padrões não devem conter segredos reais (ex.: supersecret) no repositório público — isso é um risco de segurança.
-
-#### `Por que não você não deveria colocar senhas no código?`
-
- - Repositórios (Git) podem vazar ou ser lidos por terceiros.
- - Código pode acabar em backups, imagens Docker, etc.
- - Difícil rotacionar/chavear senhas se espalhadas pelo repositório.
-
-> **Regra prática:**  
-> - Nunca colocar credenciais reais em `settings.py`.
-> - Use `.env` (não comitado) ou um *"secret manager"*.
-
-Então, por enquanto vamos omitir alguns valores padrão (default):
-
-[core/settings.py](../core/settings.py)
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'easy_rag'),
-        'USER': os.getenv('POSTGRES_USER', 'easyrag'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
-    }
-}
-```
-
-Por fim, vamos testar a conexão ao banco de dados:
-
-```bash
-python manage.py migrate
+pip list
 ```
 
 **OUTPUT:**
 ```bash
-Operations to perform:
-  Apply all migrations: admin, auth, contenttypes, sessions
-Running migrations:
-  Applying contenttypes.0001_initial... OK
-  Applying auth.0001_initial... OK
-  Applying admin.0001_initial... OK
-  Applying admin.0002_logentry_remove_auto_add... OK
-  Applying admin.0003_logentry_add_action_flag_choices... OK
-  Applying contenttypes.0002_remove_content_type_name... OK
-  Applying auth.0002_alter_permission_name_max_length... OK
-  Applying auth.0003_alter_user_email_max_length... OK
-  Applying auth.0004_alter_user_username_opts... OK
-  Applying auth.0005_alter_user_last_login_null... OK
-  Applying auth.0006_require_contenttypes_0002... OK
-  Applying auth.0007_alter_validators_add_error_messages... OK
-  Applying auth.0008_alter_user_username_max_length... OK
-  Applying auth.0009_alter_user_last_name_max_length... OK
-  Applying auth.0010_alter_group_name_max_length... OK
-  Applying auth.0011_update_proxy_permissions... OK
-  Applying auth.0012_alter_user_first_name_max_length... OK
-  Applying sessions.0001_initial... OK
-Operations to perform:
-  Apply all migrations: admin, auth, contenttypes, sessions
-Running migrations:
-  No migrations to apply.
+Package         Version
+--------------- -------
+asgiref         3.9.1
+click           8.2.1
+Django          5.2.5
+h11             0.16.0
+pip             25.2
+psycopg2-binary 2.9.10
+python-dotenv   1.1.1
+sqlparse        0.5.3
+uvicorn         0.35.0
 ```
 
+Por fim, você pode ir no seu `locaohost` e verificar se o container está rodando com Django e Uvicorn:
 
+ - [http://localhost:8000/](http://localhost:8000/)
 
 
 
@@ -1165,56 +1145,16 @@ Running migrations:
 
 
 
----
 
-<div id="env-vars"></div>
 
-## `Variáveis de Ambiente`
 
-Aqui só para fins de estudos (entendimento) vamos mostrar as variáveis de ambiente do nosso projeto:
 
-[.env](../.env)
-```bash
-# ==========================
-# CONFIGURAÇÃO DO POSTGRES
-# ==========================
-POSTGRES_DB=easy_rag_db                     # Nome do banco de dados a ser criado
-POSTGRES_USER=easyrag                       # Usuário do banco
-POSTGRES_PASSWORD=easyragpass               # Senha do banco
-POSTGRES_HOST=db                            # Nome do serviço (container) do banco no docker-compose
-POSTGRES_PORT=5432                          # Porta padrão do PostgreSQL
 
-# ==========================
-# CONFIGURAÇÃO DO REDIS
-# ==========================
-REDIS_HOST=redis                            # Nome do serviço (container) do Redis no docker-compose
-REDIS_PORT=6379                             # Porta padrão do Redis
 
-# ==========================
-# CONFIGURAÇÃO DJANGO
-# ==========================
-DJANGO_SECRET_KEY=djangopass                # Chave secreta do Django para criptografia e segurança
-DJANGO_DEBUG=True                           # True para desenvolvimento; False para produção
-DJANGO_ALLOWED_HOSTS=*                      # Hosts permitidos; * libera para qualquer host
 
-# ==========================
-# CONFIGURAÇÃO DO UVICORN
-# ==========================
-UVICORN_HOST=0.0.0.0                        # Escutar em todas as interfaces
-UVICORN_PORT=8000                           # Porta interna do app
 
-# ==========================
-# CONFIGURAÇÃO DO CELERY
-# ==========================
 
-# Celery / Redis
-CELERY_BROKER_URL=redis://redis:6379/0      # Onde as tasks vão ser enfileiradas (Redis service redis no compose)
-CELERY_RESULT_BACKEND=redis://redis:6379/1  # Onde o resultado das tasks será guardado (usar Redis DB 1 separado é comum)
 
-# Optional - For unit tests
-CELERY_TASK_ALWAYS_EAGER=False
-CELERY_TASK_EAGER_PROPAGATES=True
-```
 
 
 
@@ -1260,135 +1200,786 @@ CELERY_TASK_EAGER_PROPAGATES=True
 
 
 
----
 
-<div id="taskipy-commands"></div>
 
-## `Comandos Taskipy`
 
-> **Aqui vamos explicar quais os comando do Taskipy que nós estamos utilizando na nossa aplicação.**
 
-### Lint, Format, Pre-Commit
 
-```toml
-lint = 'ruff check'
-```
 
- - Executa o Ruff (um linter rápido para Python) para verificar problemas no código, como:
-   - Erros de sintaxe;
-   - Problemas de estilo (PEP8);
-   - Imports não utilizados;
-   - Variáveis não usadas.
-   - **📌 Importante:** Este comando só verifica, não corrige nada.
 
-```toml
-pre_format = 'ruff check --fix'
-```
 
- - Faz a mesma verificação do comando acima, mas corrige automaticamente os problemas que puder (como remover imports não usados, ajustar espaçamentos, etc.).
 
-```toml
-format = 'ruff format'
-```
 
- - Formata o código de acordo com as regras de estilo configuradas no Ruff, similar ao Black.
- - Foca mais na formatação visual do código do que nas regras de qualidade.
 
-```toml
-precommit = 'pre-commit run --all-files'
-```
 
- - Executa todos os hooks do pre-commit em todos os arquivos do projeto.
- - Pode incluir: lint, formatação, verificação de imports, checagem de segurança, etc.
 
-### Testes
 
-```toml
-pre_test = 'task lint'
-```
 
- - Executa o comando `lint` antes de rodar os testes.
- - Isso garante que o código está limpo antes de testar.
 
-```toml
-test = 'pytest -s -x --cov=. -vv'
-```
 
- - Executa os testes com pytest com algumas opções:
-   - `-s` → Mostra os prints do código durante os testes;
-   - `-x` → Para na primeira falha.
-   - `--cov=.` → Mede a cobertura de testes no diretório atual.
-   - `-vv` → Modo muito verboso, mostrando mais detalhes de cada teste.
 
-```toml
-post_test = 'coverage html'
-```
 
- - Depois que os testes rodam, gera um relatório HTML da cobertura de código.
- - Normalmente, cria uma pasta `htmlcov/` com o relatório.
 
-### Docker (Containers)
 
-```toml
-prodcompose = 'docker compose -f docker-compose.yml up --build -d'
-```
 
- - Sobe os containers do projeto em modo produção, usando `docker-compose.yml`.
- - `-d` significa detached mode (em background).
 
-```toml
-devcompose = 'docker compose up -d'
-```
 
- - Mesma ideia do anterior, mas usando o comando mais recente (docker compose sem hífen).
- - `-d` Também sobe os containers em modo detached.
- - Provavelmente pensado (usado) para ambiente de desenvolvimento.
 
-```toml
-rcontainers = 'docker compose up -d --force-recreate'
-```
 
- - Recria todos os containers do projeto, mesmo que nada tenha mudado no código ou no `docker-compose.yml`.
- - Útil quando o container está corrompido ou com cache problemático.
 
-```toml
-cleandocker = """
-docker stop $(docker ps -aq) 2>/dev/null || true &&
-docker rm $(docker ps -aq) 2>/dev/null || true &&
-docker rmi -f $(docker images -aq) 2>/dev/null || true &&
-docker volume rm $(docker volume ls -q) 2>/dev/null || true &&
-docker system prune -a --volumes -f
-"""
-```
 
- - Limpa todos os *containers*, *imagens*, *volumes* e *cache* do Docker.
 
-### Comandos do Sistema (OS)
 
-```toml
-addpermissions = """
-sudo chown -R 1000:1000 ./static ./media ./staticfiles || true &&
-sudo chmod -R 755 ./static ./media ./staticfiles
-"""
-```
 
- - `sudo chown -R 1000:1000 ./static ./media ./staticfiles || true`
-   - `sudo` → Executa o comando com privilégios de administrador.
-   - `chown -R 1000:1000` → Altera o dono e grupo de todos os arquivos e pastas *recursivamente (-R)* para *UID=1000* e *GID=1000*.
-   - `./static ./media ./staticfiles` → Pastas (ou poderiam ser arquivos) alvo do comando.
-   - `|| true` → Significa “se o comando falhar, não interrompa a execução”:
-     - Útil se você estiver rodando sem sudo ou se o usuário já for dono.
-   - **Resumo:** garante que todas as pastas e arquivos pertencem ao usuário 1000:1000, evitando problemas de permissões.
- - `&& sudo chmod -R 755 ./static ./media ./staticfiles`
-   - `&&` → Só executa o próximo comando se o anterior tiver sucesso.
-   - `chmod -R 755` → Altera permissões recursivamente:
-     - `7 (rwx)` para o dono → leitura, escrita e execução.
-     - `5 (r-x)` para grupo e outros → leitura e execução, mas não escrita.
-   - `./static ./media ./staticfiles` → pastas alvo.
-   - **Resumo:** garante que:
-     - O dono pode ler, escrever e executar arquivos/pastas.
-     - Grupo e outros podem apenas ler e executar (necessário para o Nginx servir os arquivos).
 
----
 
-**Rodrigo** **L**eite da **S**ilva - **rodrigols89**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

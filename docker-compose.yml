@@ -1,5 +1,25 @@
-volumes:
-  postgres_data:
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django_web
+    restart: always
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      uvicorn core.asgi:application --reload --host ${UVICORN_HOST} --port ${UVICORN_PORT}
+      "
+    env_file:
+      - .env
+    volumes:
+      - .:/code
+      - ./static:/code/staticfiles
+      - ./media:/code/media
+    ports:
+      - "${UVICORN_PORT}:${UVICORN_PORT}"
+    networks:
+      - backend
 
 networks:
   backend:

@@ -1,9 +1,7 @@
 
 
 
- - [`Criando o container com PostgreSQL`](#postgresql-container)
- - [`Criando o container com o Django e criando o projeto "core"`](#install-django-core)
- - [`Configurações iniciais do Django (templates, static, media)`](#init-django-settings)
+
  - [`Criando a landing page index.html`](#index-landing)
  - [`Criando App users e um superusuario no Django Admin`](#app-users-more-django-admin)
  - [`Criando a página de cadastro (create-account.html + DB Commands)`](#create-account)
@@ -132,6 +130,66 @@
 
 
 
+---
+
+<div id="init-docker-compose"></div>
+
+## `Criando os docker-compose (iniciais) da nossa aplicação`
+
+É comum em uma aplicação ter os seguintes *docker-composes*:
+
+ - [⚙️ 1. docker-compose.yml (base comum)](../docker-compose.yml)
+   - Esse é o arquivo principal, usado em todos os ambientes.
+   - Define apenas o serviço de banco, os volumes e a rede.
+   - 👉 Esse arquivo nunca muda, nem em dev nem em prod — é a base do projeto.
+ - [⚙️ 2. Docker-compose.dev.yml](../docker-compose.dev.yml)
+   - Para desenvolvimento, o que muda normalmente é:
+     - Expor a porta do banco localmente (5432:5432);
+     - Permitir acesso de ferramentas como DBeaver, PgAdmin ou psql;
+     - Log mais detalhado.
+   - 💡 Aqui não precisamos repetir image, volumes, etc. — o Docker herda tudo do base e apenas aplica o override.
+ - [⚙️ 3. Docker-compose.prod.yml](../docker-compose.prod.yml)
+   - Na produção, normalmente:
+     - Não expomos a porta 5432 (para segurança);
+     - Mantemos o banco acessível apenas pela rede interna do Docker;
+     - Ativamos backup automatizado (opcional mais pra frente).
+   - ⚠️ expose deixa a porta visível apenas dentro da rede Docker, sem expor para o host ou internet.
+
+De início vamos criar apenas o compose base:
+
+[docker-compose.yml](../docker-compose.yml)
+```yaml
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+```
+
+Agora vamos criar comandos no Taskipy para executar cada um dos docker-compose:
+
+[pyproject.toml](../pyproject.toml)
+```toml
+[tool.taskipy.tasks]
+prodcompose = 'docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d'
+devcompose = 'docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d'
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -207,48 +265,6 @@ services:
     expose:
       - "5432"
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ---
@@ -703,73 +719,6 @@ runserver = 'python manage.py runserver'
 
 
 
----
-
-<div id="init-django-settings"></div>
-
-## `Configurações iniciais do Django (templates, static, media)`
-
-> Aqui nós vamos fazer as configurações iniciais do Django que serão.
-
-Fazer o Django identificar onde estarão os arquivos `templates`, `static` e `media`:
-
-[core/settings.py](../core/settings.py)
-```python
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
-
-
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-```
-
-Agora vamos garantir que o Django só sirva arquivos diretamente quando estiver em modo de desenvolvimento (DEBUG=True):
-
-[core/urls.py](../core/urls.py)
-```python
-from django.conf import settings
-from django.conf.urls.static import static
-
-  ...
-
-
-if settings.DEBUG:
-    urlpatterns += static(
-        settings.MEDIA_URL,
-        document_root=settings.MEDIA_ROOT
-    )
-```
-
-**Explicação das principais partes do código:**
-
- - `from django.conf import settings`
-   - Permite acessar as variáveis definidas no `settings.py`, como `MEDIA_URL` e `MEDIA_ROOT`.
- - `from django.conf.urls.static import static`
-   - Fornece uma função utilitária para servir arquivos estáticos e de mídia durante o desenvolvimento.
- - `if settings.DEBUG`
-   - Garante que o Django **só sirva arquivos diretamente** quando estiver em modo de desenvolvimento (DEBUG=True).
-   - Em produção, essa função não deve ser usada — o servidor web (Nginx, Apache, etc.) serve esses arquivos.
- - `urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)`
-   - Faz o Django mapear as URLs que começam com /media/ para os arquivos dentro da pasta física definida em MEDIA_ROOT.
-   - Assim, se o usuário enviar um arquivo uploads/teste.pdf, o Django poderá exibi-lo no navegador.
-
 Por fim, mas não menos importante, vamos criar o arquivo `base.html`:
 
 [base.html](../templates/base.html)
@@ -789,6 +738,912 @@ Por fim, mas não menos importante, vamos criar o arquivo `base.html`:
     </body>
 </html>
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="psycopg2-binary"></div>
+
+## `Instalando a biblioteca psycopg2-binary`
+
+> Antes de começar a trabalhar com o Django, precisamos instalar o driver nativo do nosso Banco de Dados (PostgreSQL).
+
+ - Este é o driver oficial do PostgreSQL para Python — o Django usa ele internamente para conversar com o banco.
+ - **NOTE:** Sem ele, o Django não consegue abrir a conexão porque depende de um driver nativo específico do PostgreSQL.
+
+```bash
+poetry add psycopg2-binary@latest
+```
+
+#### `O que o psycopg2-binary faz?`
+
+> Ele é a ponte entre o Django (Python) e o PostgreSQL (servidor).
+
+Quando o Django executa algo como:
+
+```bash
+User.objects.create(username="drigols")
+```
+
+internamente ele faz uma chamada SQL tipo:
+
+```sql
+INSERT INTO auth_user (username) VALUES ('drigols');
+```
+
+Mas pra enviar isso ao PostgreSQL, ele precisa de uma biblioteca cliente — e é aí que entra o psycopg2.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="django-setting-db"></div>
+
+## `Configurando o Django para reconhecer o PostgreSQL (+ .env) como Banco de Dados`
+
+Antes de começar a configurar o Django para reconhecer o PostgreSQL como Banco de Dados, vamos fazer ele reconhecer as variáveis de ambiente dentro de [core/settings.py](../core/settings.py).
+
+Primeiro, vamos instalar o `python-dotenv`:
+
+```bash
+poetry add python-dotenv@latest
+```
+
+Agora iniciar uma instância do `python-dotenv`:
+
+[core/settings.py](../core/settings.py)
+```python
+import os
+
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+```
+
+> **Como testar que está funcionando?**
+
+Primeiro, imagine que nós temos as seguinte variáveis de ambiente:
+
+[.env](../.env)
+```bash
+POSTGRES_DB=easy_rag_db           # Nome do banco de dados a ser criado
+POSTGRES_USER=easyrag             # Usuário do banco
+POSTGRES_PASSWORD=easyragpass     # Senha do banco
+POSTGRES_HOST=localhost           # Nome do serviço (container) do banco no docker-compose
+POSTGRES_PORT=5432                # Porta padrão do PostgreSQL
+```
+
+Agora vamos abrir um **shell interativo do Django**, ou seja, um terminal Python (REPL) com o Django já carregado, permitindo testar código com acesso total ao projeto.
+
+É parecido com abrir um python normal, mas com estas diferenças:
+
+| Recurso                           | Python normal | `manage.py shell` |
+| --------------------------------- | ------------- | ----------------- |
+| Carrega o Django automaticamente  | ❌ Não       | ✅ Sim            |
+| Consegue acessar `settings.py`    | ❌           | ✅                |
+| Consegue acessar models           | ❌           | ✅                |
+| Consegue consultar banco de dados | ❌           | ✅                |
+| Lê o `.env` (se Django carregar)  | ❌           | ✅                |
+| Útil para debugar                 | Razoável      | Excelente         |
+
+```bash
+python manage.py shell
+
+6 objects imported automatically (use -v 2 for details).
+Python 3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+(InteractiveConsole)
+
+>>> import os
+
+>>> print(os.getenv("POSTGRES_HOST"))
+localhost
+
+>>> print(os.getenv("POSTGRES_PASSWORD"))
+easyragpass
+```
+
+> **NOTE:**  
+> Vejam que realmente nós estamos conseguindo acessar as variáveis de ambiente.
+
+#### Continuando...
+
+> Uma coisa importante é dizer ao Django qual Banco de Dados vamos utilizar.
+
+Por exemplo:
+
+[core/settings.py](../core/settings.py)
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'easy_rag'),
+        'USER': os.getenv('POSTGRES_USER', 'easyrag'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'supersecret'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+    }
+}
+```
+
+No exemplo acima nós temos um dicionário que informa ao Django como conectar ao banco de dados:
+
+ - `ENGINE`
+   - Qual backend/driver o Django usa — aqui, PostgreSQL.
+ - `NAME`
+   - Nome do banco.
+ - `USER`
+   - Usuário do banco.
+ - `PASSWORD`
+   - Senha do usuário.
+ - `HOST`
+   - Host/hostname do servidor de banco.
+ - `PORT`
+   - Porta TCP onde o Postgres escuta.
+
+#### `O que os.getenv('VAR', 'default') faz, exatamente?`
+
+`os.getenv` vem do módulo padrão `os` e faz o seguinte:
+
+ - Tenta ler a variável de ambiente chamada 'VAR' (por exemplo POSTGRES_DB);
+ - Se existir, retorna o valor da variável de ambiente;
+ - Se não existir, retorna o valor padrão passado como segundo argumento ('default').
+
+#### `Por que às vezes PASSAMOS um valor padrão (default) no código?`
+
+ - *Conforto no desenvolvimento local:* evita quebrar o projeto se você esquecer de definir `.env`.
+ - *Documentação inline:* dá uma ideia do nome esperado (easy_rag, 5432, etc.).
+ - *Teste rápido:* você pode rodar `manage.py` localmente sem carregar variáveis.
+
+> **NOTE:**  
+> Mas atenção: os valores padrões não devem conter segredos reais (ex.: supersecret) no repositório público — isso é um risco de segurança.
+
+#### `Por que não você não deveria colocar senhas no código?`
+
+ - Repositórios (Git) podem vazar ou ser lidos por terceiros.
+ - Código pode acabar em backups, imagens Docker, etc.
+ - Difícil rotacionar/chavear senhas se espalhadas pelo repositório.
+
+> **Regra prática:**  
+> - Nunca colocar credenciais reais em `settings.py`.
+> - Use `.env` (não comitado) ou um *"secret manager"*.
+
+Então, por enquanto vamos omitir alguns valores padrão (default):
+
+[core/settings.py](../core/settings.py)
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'easy_rag'),
+        'USER': os.getenv('POSTGRES_USER', 'easyrag'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+    }
+}
+```
+
+Por fim, vamos testar a conexão ao banco de dados:
+
+```bash
+python manage.py migrate
+```
+
+**OUTPUT:**
+```bash
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying sessions.0001_initial... OK
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions
+Running migrations:
+  No migrations to apply.
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="env-vars"></div>
+
+## `Variáveis de Ambiente`
+
+Aqui só para fins de estudos (entendimento) vamos mostrar as variáveis de ambiente do nosso projeto:
+
+[.env](../.env)
+```bash
+# ==========================
+# CONFIGURAÇÃO DO POSTGRES
+# ==========================
+POSTGRES_DB=easy_rag_db                     # Nome do banco de dados a ser criado
+POSTGRES_USER=easyrag                       # Usuário do banco
+POSTGRES_PASSWORD=easyragpass               # Senha do banco
+POSTGRES_HOST=db                            # Nome do serviço (container) do banco no docker-compose
+POSTGRES_PORT=5432                          # Porta padrão do PostgreSQL
+
+# ==========================
+# CONFIGURAÇÃO DO REDIS
+# ==========================
+REDIS_HOST=redis                            # Nome do serviço (container) do Redis no docker-compose
+REDIS_PORT=6379                             # Porta padrão do Redis
+
+# ==========================
+# CONFIGURAÇÃO DJANGO
+# ==========================
+DJANGO_SECRET_KEY=djangopass                # Chave secreta do Django para criptografia e segurança
+DJANGO_DEBUG=True                           # True para desenvolvimento; False para produção
+DJANGO_ALLOWED_HOSTS=*                      # Hosts permitidos; * libera para qualquer host
+
+# ==========================
+# CONFIGURAÇÃO DO UVICORN
+# ==========================
+UVICORN_HOST=0.0.0.0                        # Escutar em todas as interfaces
+UVICORN_PORT=8000                           # Porta interna do app
+
+# ==========================
+# CONFIGURAÇÃO DO CELERY
+# ==========================
+
+# Celery / Redis
+CELERY_BROKER_URL=redis://redis:6379/0      # Onde as tasks vão ser enfileiradas (Redis service redis no compose)
+CELERY_RESULT_BACKEND=redis://redis:6379/1  # Onde o resultado das tasks será guardado (usar Redis DB 1 separado é comum)
+
+# Optional - For unit tests
+CELERY_TASK_ALWAYS_EAGER=False
+CELERY_TASK_EAGER_PROPAGATES=True
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="taskipy-commands"></div>
+
+## `Comandos Taskipy`
+
+> **Aqui vamos explicar quais os comando do Taskipy que nós estamos utilizando na nossa aplicação.**
+
+### Lint, Format, Pre-Commit
+
+```toml
+lint = 'ruff check'
+```
+
+ - Executa o Ruff (um linter rápido para Python) para verificar problemas no código, como:
+   - Erros de sintaxe;
+   - Problemas de estilo (PEP8);
+   - Imports não utilizados;
+   - Variáveis não usadas.
+   - **📌 Importante:** Este comando só verifica, não corrige nada.
+
+```toml
+pre_format = 'ruff check --fix'
+```
+
+ - Faz a mesma verificação do comando acima, mas corrige automaticamente os problemas que puder (como remover imports não usados, ajustar espaçamentos, etc.).
+
+```toml
+format = 'ruff format'
+```
+
+ - Formata o código de acordo com as regras de estilo configuradas no Ruff, similar ao Black.
+ - Foca mais na formatação visual do código do que nas regras de qualidade.
+
+```toml
+precommit = 'pre-commit run --all-files'
+```
+
+ - Executa todos os hooks do pre-commit em todos os arquivos do projeto.
+ - Pode incluir: lint, formatação, verificação de imports, checagem de segurança, etc.
+
+### Testes
+
+```toml
+pre_test = 'task lint'
+```
+
+ - Executa o comando `lint` antes de rodar os testes.
+ - Isso garante que o código está limpo antes de testar.
+
+```toml
+test = 'pytest -s -x --cov=. -vv'
+```
+
+ - Executa os testes com pytest com algumas opções:
+   - `-s` → Mostra os prints do código durante os testes;
+   - `-x` → Para na primeira falha.
+   - `--cov=.` → Mede a cobertura de testes no diretório atual.
+   - `-vv` → Modo muito verboso, mostrando mais detalhes de cada teste.
+
+```toml
+post_test = 'coverage html'
+```
+
+ - Depois que os testes rodam, gera um relatório HTML da cobertura de código.
+ - Normalmente, cria uma pasta `htmlcov/` com o relatório.
+
+### Docker (Containers)
+
+```toml
+prodcompose = 'docker compose -f docker-compose.yml up --build -d'
+```
+
+ - Sobe os containers do projeto em modo produção, usando `docker-compose.yml`.
+ - `-d` significa detached mode (em background).
+
+```toml
+devcompose = 'docker compose up -d'
+```
+
+ - Mesma ideia do anterior, mas usando o comando mais recente (docker compose sem hífen).
+ - `-d` Também sobe os containers em modo detached.
+ - Provavelmente pensado (usado) para ambiente de desenvolvimento.
+
+```toml
+rcontainers = 'docker compose up -d --force-recreate'
+```
+
+ - Recria todos os containers do projeto, mesmo que nada tenha mudado no código ou no `docker-compose.yml`.
+ - Útil quando o container está corrompido ou com cache problemático.
+
+```toml
+cleandocker = """
+docker stop $(docker ps -aq) 2>/dev/null || true &&
+docker rm $(docker ps -aq) 2>/dev/null || true &&
+docker rmi -f $(docker images -aq) 2>/dev/null || true &&
+docker volume rm $(docker volume ls -q) 2>/dev/null || true &&
+docker system prune -a --volumes -f
+"""
+```
+
+ - Limpa todos os *containers*, *imagens*, *volumes* e *cache* do Docker.
+
+### Comandos do Sistema (OS)
+
+```toml
+addpermissions = """
+sudo chown -R 1000:1000 ./static ./media ./staticfiles || true &&
+sudo chmod -R 755 ./static ./media ./staticfiles
+"""
+```
+
+ - `sudo chown -R 1000:1000 ./static ./media ./staticfiles || true`
+   - `sudo` → Executa o comando com privilégios de administrador.
+   - `chown -R 1000:1000` → Altera o dono e grupo de todos os arquivos e pastas *recursivamente (-R)* para *UID=1000* e *GID=1000*.
+   - `./static ./media ./staticfiles` → Pastas (ou poderiam ser arquivos) alvo do comando.
+   - `|| true` → Significa “se o comando falhar, não interrompa a execução”:
+     - Útil se você estiver rodando sem sudo ou se o usuário já for dono.
+   - **Resumo:** garante que todas as pastas e arquivos pertencem ao usuário 1000:1000, evitando problemas de permissões.
+ - `&& sudo chmod -R 755 ./static ./media ./staticfiles`
+   - `&&` → Só executa o próximo comando se o anterior tiver sucesso.
+   - `chmod -R 755` → Altera permissões recursivamente:
+     - `7 (rwx)` para o dono → leitura, escrita e execução.
+     - `5 (r-x)` para grupo e outros → leitura e execução, mas não escrita.
+   - `./static ./media ./staticfiles` → pastas alvo.
+   - **Resumo:** garante que:
+     - O dono pode ler, escrever e executar arquivos/pastas.
+     - Grupo e outros podem apenas ler e executar (necessário para o Nginx servir os arquivos).
+
+---
+
+**Rodrigo** **L**eite da **S**ilva - **rodrigols89**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,7 +1,4 @@
 
-
-
-
  - [`Criando a landing page index.html`](#index-landing)
  - [`Criando App users e um superusuario no Django Admin`](#app-users-more-django-admin)
  - [`Criando a página de cadastro (create-account.html + DB Commands)`](#create-account)
@@ -17,6 +14,112 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
 
 
 

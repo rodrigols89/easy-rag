@@ -2193,9 +2193,8 @@ Continuando, vamos adicionar `base.html` e algumas classes *TailwindCSS* para fi
 [templates/pages/index.html](../templates/pages/index.html)
 ```html
 {% extends "base.html" %}
-{% load socialaccount %}
 
-{% block title %}Easy RAG — Login{% endblock %}
+{% block title %}RAG Project — Login{% endblock %}
 
 {% block content %}
     <main class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -2204,7 +2203,7 @@ Continuando, vamos adicionar `base.html` e algumas classes *TailwindCSS* para fi
             <div class="bg-white py-8 px-6 shadow rounded-lg">
                 <!-- Logo / Title -->
                 <div class="mb-6 text-center">
-                    <h2 class="mt-4 text-2xl font-semibold text-gray-900">Easy RAG</h2>
+                    <h2 class="mt-4 text-2xl font-semibold text-gray-900">RAG Project</h2>
                     <p class="mt-1 text-sm text-gray-500">Faça login para acessar seu painel</p>
                 </div>
 
@@ -2219,7 +2218,7 @@ Continuando, vamos adicionar `base.html` e algumas classes *TailwindCSS* para fi
                 {% endif %}
 
                 <!-- Form -->
-                <form method="post" action="" class="space-y-6">
+                <form method="" action="" class="space-y-6">
                     {% csrf_token %}
 
                     <!-- Username -->
@@ -2265,7 +2264,7 @@ Continuando, vamos adicionar `base.html` e algumas classes *TailwindCSS* para fi
                 <div class="mt-6 grid grid-cols-2 gap-3">
                     <!-- Google -->
                     <div>
-                        <a href="{% provider_login_url 'google' %}"
+                        <a href=""
                         class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50">
                             <!-- Google icon (svg) -->
                             <svg class="h-5 w-5 mr-2" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -2280,7 +2279,7 @@ Continuando, vamos adicionar `base.html` e algumas classes *TailwindCSS* para fi
 
                     <!-- GitHub -->
                     <div>
-                        <a href="{% provider_login_url 'github' %}"
+                        <a href=""
                         class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50">
                             <!-- GitHub icon -->
                             <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -2294,7 +2293,7 @@ Continuando, vamos adicionar `base.html` e algumas classes *TailwindCSS* para fi
                 <!-- Footer: cadastrar -->
                 <p class="mt-6 text-center text-sm text-gray-600">
                     Não tem conta?
-                    <a href="{% url 'create-account' %}" class="font-medium text-blue-600 hover:text-blue-700">Cadastrar</a>
+                    <a href="" class="font-medium text-blue-600 hover:text-blue-700">Cadastrar</a>
                 </p>
             </div>
         </div>
@@ -2307,7 +2306,7 @@ Continuando, vamos adicionar `base.html` e algumas classes *TailwindCSS* para fi
 
 Finalmente, se você abrir o projeto (site) na rota/url principal vai aparecer essa `landing page`.
 
- - [http://localhost:8000/](http://localhost:8000/)
+ - [http://localhost/](http://localhost/)
 
 ![landing page](images/index-landing-02.png)  
 

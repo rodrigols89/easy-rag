@@ -19,6 +19,7 @@
  - [`Criando a página de cadastro (create-account.html + DB Commands)`](#create-account)
  - [`Criando a sessão de login/logout + página home.html`](#session-home)
  - [`Criando o login com Google e GitHub`](#login-google-github)
+ - [`Criando o app "workspace"`](#app-workspace)
  - [`.github/workflows`](#github-workflows)
  - [`Variáveis de Ambiente`](#env-vars)
  - [`Comandos Taskipy`](#taskipy-commands)
@@ -3453,7 +3454,6 @@ Não, primeiro nós precisamos antes setar a url/link no nosso [index.html](../t
 
 ---
 
-
 <div id="login-google-github"></div>
 
 ## `Criando o login com Google e GitHub`
@@ -3963,6 +3963,75 @@ Você também pode personalizar outros templates do `Allauth` da mesma forma, cr
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+<div id="app-workspace"></div>
+
+## `Criando o app "workspace"`
+
+> Aqui vamos criar um app Django dedicado ao *Workspace (onde o usuário poderá criar pastas e fazer upload de arquivos)* e registrar esse app nas configurações do projeto.
+
+```bash
+docker exec -it django python manage.py startapp workspace
+```
+
+Agora vamos registrar esse app nas configurações do projeto:
+
+[settings.py](../core/settings.py)
+```python
+INSTALLED_APPS = [
+
+    ...
+
+    # Seus apps
+    "users",
+    "workspace",
+]
+```
+
+x
 
 
 

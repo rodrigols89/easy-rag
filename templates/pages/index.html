@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load socialaccount %}
 
 {% block title %}RAG Project — Login{% endblock %}
 
@@ -70,7 +71,7 @@
                 <div class="mt-6 grid grid-cols-2 gap-3">
                     <!-- Google -->
                     <div>
-                        <a href=""
+                        <a href="{% provider_login_url 'google' %}"
                         class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50">
                             <!-- Google icon (svg) -->
                             <svg class="h-5 w-5 mr-2" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -85,7 +86,7 @@
 
                     <!-- GitHub -->
                     <div>
-                        <a href=""
+                        <a href="{% provider_login_url 'github' %}"
                         class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50">
                             <!-- GitHub icon -->
                             <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

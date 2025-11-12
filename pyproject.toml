@@ -29,7 +29,7 @@ pytest-cov = "^7.0.0"
 line-length = 79
 exclude = [
     "core/settings.py",
-    "documents/migrations",
+    "workspace/migrations",
     "users/adapter.py"
 ]
 

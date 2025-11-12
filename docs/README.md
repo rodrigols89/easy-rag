@@ -20,7 +20,7 @@
  - [`Criando a sessão de login/logout + página home.html`](#session-home)
  - [`Criando o login com Google e GitHub`](#login-google-github)
  - [`Criando o app "workspace"`](#app-workspace)
- - [`Modelando o workspace: pastas (Folder) e arquivos (File)`](#folder-file)
+ - [`Mapeando a rota home/ com a workspace/`](#home-to-workspace)
  - [`.github/workflows`](#github-workflows)
  - [`Variáveis de Ambiente`](#env-vars)
  - [`Comandos Taskipy`](#taskipy-commands)
@@ -4078,177 +4078,188 @@ INSTALLED_APPS = [
 
 ---
 
-<div id="folder-file"></div>
+<div id="home-to-workspace"></div>
 
-## `Modelando o workspace: pastas (Folder) e arquivos (File)`
+## `Mapeando a rota home/ com a workspace/`
 
-Nesta etapa vamos modelar o **núcleo do Workspace**:
+> Aqui nós vamos relacionar o template `home.html` com o template `workspace.html`.
 
- - pastas (Folder);
- - arquivos (File).
+De início vamos fazer nosso projeto reconhecer as URLs do App `workspace`:
 
-As models permitem representar hierarquia de pastas (pastas-filhas), associar pastas e arquivos a um usuário (owner), e armazenar metadados importantes como data de criação e localização física do arquivo no MEDIA_ROOT. Também incluiremos uma função `upload_to()` para organizar os arquivos no disco por usuário e pasta.
-
-De início vamos começar modelando `workspace_upload_to()`:
-
-[models.py](../workspace/models.py)
+[core/urls.py](../core/urls.py)
 ```python
-import os
+from django.contrib import admin
+from django.urls import include, path
 
-
-def workspace_upload_to(instance, filename):
-    """
-    Constrói o path onde o arquivo será salvo dentro de MEDIA_ROOT:
-    workspace/<user_id>/<folder_id_or_root>/<filename>
-    """
-    user_part = (
-        f"user_{instance.folder.owner.id}"
-        if instance.folder and instance.folder.owner
-        else f"user_{instance.uploader.id}"
-    )
-
-    folder_part = f"folder_{instance.folder.id}" if instance.folder else "root"
-
-    # limpa nome do arquivo por segurança básica
-    safe_name = os.path.basename(filename)
-
-    return os.path.join("workspace", user_part, folder_part, safe_name)
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("accounts/", include("allauth.urls")),
+    path("", include("users.urls")),
+    path("", include("workspace.urls")),
+]
 ```
 
- - `def workspace_upload_to(instance, filename)`:
-   - Função usada pelo `FileField.upload_to` para gerar o caminho de armazenamento do arquivo.
-   - Recebe a instância do modelo e o nome original do arquivo.
- - `user_part`
-   - Tenta extrair `folder.owner.id`; se não houver folder tenta `instance.uploader.id (fallback)`, formatando como `user_<id>`.
-   - Assim os arquivos ficam segregados (separados) por usuário.
- - `folder_part`
-   - Se houver pasta associa `folder_<id>`, caso contrário usa "root" (arquivos na raiz do workspace do usuário).
- - `safe_name = os.path.basename(filename)`
-   - Pega apenas o nome limpo do arquivo (proteção contra nomes com path).
- - `return os.path.join("workspace", user_part, folder_part, safe_name)`
-   - Monta e retorna o caminho relativo dentro de `MEDIA_ROOT`.
+Agora nós vamos criar uma URL específica para a rota `/workspace/`:
 
-Agora vamos implementar (modelar) a classe `Folder` que vai ser responsável por representar um pasta de um usuário no workspace:
-
-[models.py](../workspace/models.py)
+[workspace/urls.py](../workspace/urls.py)
 ```python
-import os
+from django.urls import path
 
-from django.conf import settings
-from django.db import models
-from django.utils.translation import gettext_lazy as _
+from .views import workspace
 
-
-class Folder(models.Model):
-    """
-    Representa uma pasta do usuário. Suporta hierarquia via parent (self-FK).
-    """
-
-    name = models.CharField(_("name"), max_length=255)
-
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="folders",
-    )
-
-    parent = models.ForeignKey(
-        "self",
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-        related_name="children",
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-        verbose_name = _("Folder")
-        verbose_name_plural = _("Folders")
-
-    def __str__(self):
-        return self.name
+urlpatterns = [
+    path(route="workspace", view=workspace, name="workspace"),
+]
 ```
 
- - `from django.conf import settings`
-   - Traz a configuração do projeto (para referência ao modelo de usuário se necessário).
- - `from django.db import models`
-   - importa os tipos de campo e base Model do Django.
- - `from django.utils.translation import gettext_lazy as _`
-   -  Utilitário para poder marcar strings traduzíveis (bom para labels futuros).
- - `name = models.CharField(_("name"), max_length=255)`
-   - Campo para nome da pasta;
-   - `_("name")` marca a label para tradução;
-   - Limite de 255 caracteres.
- - `owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="folders")`
-   - Referência ao usuário dono da pasta;
-   - `on_delete=models.CASCADE` remove pastas se o usuário for excluído;
-   - `related_name="folders"` permite `user.folders.all()`.
- - `parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="children")`
-   - Permite subpastas (estrutura em árvore).
-   - `null/blank` permitem pastas de topo;
-   - `related_name="children"` para acessar subpastas via `folder.children.all()`.
-   - `created_at = models.DateTimeField(auto_now_add=True)` Armazena quando a pasta foi criada automaticamente.
- - `class Meta:`
-   - Metadados do modelo:
-     - `ordering = ["-created_at"]` — Ordena por data de criação descendente por padrão.
-     - `verbose_name` e `verbose_name_plural` para labels traduzíveis no admin.
+Agora nós vamos precisar criar uma view (ação) para:
 
-Por fim, vamos implementar (modelar) a classe `File` que vai ser responsável por representar um arquivo armazenado em uma pasta (Folder):
+- Quando alguém clicar em Workspace no botão (link) `home.html`, seja redirecionado para `workspace.html`;
+ - E essa pessoa também tem que estar logada para acessar essa rota.
 
-[models.py](../workspace/models.py)
+[workspace/views.py](../workspace/views.py)
 ```python
-class File(models.Model):
-    """
-    Representa um arquivo armazenado em uma pasta (Folder).
-    """
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
 
-    name = models.CharField(_("name"), max_length=255)
 
-    file = models.FileField(_("file"), upload_to=workspace_upload_to)
-
-    folder = models.ForeignKey(
-        Folder, on_delete=models.CASCADE, related_name="files"
-    )
-
-    uploader = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="uploaded_files",
-    )
-
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-uploaded_at"]
-        verbose_name = _("File")
-        verbose_name_plural = _("Files")
-
-    def __str__(self):
-        return self.name
+@login_required(login_url="/")
+def workspace(request):
+    return render(request, "pages/workspace.html")
 ```
 
- - `file = models.FileField(_("file"), upload_to=workspace_upload_to)`
-   - Campo que armazena o arquivo e usa a função `workspace_upload_to()` para decidir onde salvar fisicamente em `MEDIA_ROOT`.
- - `folder = models.ForeignKey(Folder, on_delete=models.CASCADE, related_name="files")`
-   - Referência para a pasta que contém o arquivo;
-   - Ao deletar a pasta os arquivos também são deletados (CASCADE);
-   - `related_name="files"` permite `folder.files.all()`.
- - `uploader = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="uploaded_files")`
-   - Usuário que fez o upload (útil para permissões e auditoria).
- - `uploaded_at = models.DateTimeField(auto_now_add=True)`
-   - Timestamp do upload.
+Por fim, vou mostrar como vai ficar nossos `home.html` e `workspace.html` (como HTML e CSS não é nosso foco vamos ignorar isso por enquanto):
 
-Por fim, vamos criar as migrações do App `workspace` e do Banco de Dados geral:
+[users/templates/pages/home.html](../users/templates/pages/home.html)
+```html
+{% extends "base.html" %}
 
-```bash
-docker compose exec web python manage.py makemigrations workspace
+{% block title %}Home{% endblock %}
+
+{% block content %}
+    <div class="flex h-screen bg-gray-100">
+
+        <!-- 🧱 Sidebar -->
+        <aside class="w-64 bg-gray-900 text-white flex flex-col justify-between">
+
+            <!-- Workspace Button -->
+            <div class="p-2 border-b border-gray-700">
+                <a class="flex items-center justify-between p-2 hover:bg-gray-800 rounded"
+                    href="{% url 'workspace' %}">
+                    Workspace
+                </a>
+            </div>
+
+            <!-- Logout -->
+            <div class="p-4 border-t border-gray-700">
+                <a href="{% url 'logout' %}"
+                   class="block text-center text-red-400 hover:text-red-300">
+                   Sair
+                </a>
+            </div>
+
+        </aside>
+
+{% endblock %}
 ```
 
-```bash
-docker compose exec web python manage.py migrate
+[workspace/templates/pages/workspace.html](../workspace/templates/pages/workspace.html)
+```html
+{% extends "base.html" %}
+
+{% block title %}Workspace{% endblock %}
+
+{% block content %}
+    <div class="flex h-screen bg-gray-100">
+
+        <!-- 🧱 Sidebar -->
+        <aside class="w-64 bg-gray-900 text-white flex flex-col justify-between">
+
+            <!-- Home Button -->
+            <div class="p-2 border-b border-gray-700">
+                <a class="flex items-center justify-between p-2 hover:bg-gray-800 rounded"
+                    href="{% url 'home' %}">
+                    Home
+                </a>
+            </div>
+
+            <!-- Logout -->
+            <div class="p-4 border-t border-gray-700">
+                <a href="{% url 'logout' %}"
+                   class="block text-center text-red-400 hover:text-red-300">
+                   Sair
+                </a>
+            </div>
+
+        </aside>
+{% endblock %}
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
